@@ -128,9 +128,9 @@ h3{font-size:24px;line-height:1.2}
 .carousel{position:relative;margin-top:48px}
 .track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:2px}
 .track::-webkit-scrollbar{display:none}
-.slide{flex:0 0 100%;scroll-snap-align:start;aspect-ratio:16/10;max-width:100%;margin:0;background:var(--paper-2)}
+.slide{flex:0 0 100%;scroll-snap-align:start;aspect-ratio:3/2;max-width:100%;margin:0;background:var(--paper-2)}
 .slide img{width:100%;height:100%;object-fit:cover;display:block}
-@media (max-width:640px){.slide{aspect-ratio:4/5}}
+@media (max-width:640px){.slide{aspect-ratio:4/3}.carousel{margin-left:calc(-1*max(20px,env(safe-area-inset-left,0px)));margin-right:calc(-1*max(20px,env(safe-area-inset-right,0px)))}.cbar{padding-inline:max(20px,env(safe-area-inset-left,0px))}}
 .cbar{display:flex;align-items:center;gap:16px;margin-top:18px}
 .dots{display:flex;gap:8px;flex:1}
 .dots button{width:28px;height:2px;border:0;padding:0;background:var(--line);cursor:pointer;transition:background .3s}
