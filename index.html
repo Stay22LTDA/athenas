@@ -235,6 +235,10 @@ h3{font-size:24px;line-height:1.2}
 .price.total{background:var(--ink);color:var(--cream);border-color:var(--ink)}
 .price p{margin:0;font-size:15px;color:var(--muted)}
 .price.total p{color:#C9B9A2}
+.incl{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:10px;font-size:15px;color:var(--cream)}
+.incl li{display:flex;gap:12px;align-items:baseline}
+.incl li::before{content:"";flex:0 0 14px;height:1px;background:var(--gold-soft);transform:translateY(-4px)}
+.price .pay{margin-top:20px;padding-top:14px;border-top:1px solid #4A3B2E}
 .deadline{margin-top:40px;display:flex;gap:28px;align-items:center;flex-wrap:wrap}
 .deadline b{font-family:var(--display);font-weight:400;font-size:88px;line-height:.9;color:var(--gold)}
 
@@ -515,7 +519,15 @@ footer p{margin:0;max-width:80ch}
     <h2>Investimento e prazo</h2>
     <div class="rule"></div>
     <div class="invest">
-      <div class="price total"><div class="eyebrow">Pacote Stay22</div><div class="v">R$ 15.000</div><p>Equipagem completa do flat, com a mão de obra de montagem e instalação já inclusa. Condições de pagamento a combinar.</p></div>
+      <div class="price total"><div class="eyebrow">Pacote Stay22</div><div class="v">R$ 15.000</div><p>Equipagem completa do flat. A Stay22 é responsável por:</p>
+        <ul class="incl">
+          <li>Todos os orçamentos</li>
+          <li>Mão de obra de pintura</li>
+          <li>Montagem dos móveis e eletrodomésticos</li>
+          <li>Instalação dos adornos e instalações elétricas</li>
+          <li>Cadastro do flat nas plataformas, com todas as informações e fotos profissionais dos ambientes</li>
+        </ul>
+        <p class="pay">Condições de pagamento a combinar.</p></div>
       <div class="price"><div class="eyebrow">Marcenaria</div><div class="v" style="font-size:32px">Contrato à parte</div><p>Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis, de forma totalmente independente da Stay22.</p></div>
     </div>
     <div class="deadline">
