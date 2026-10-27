@@ -12,7 +12,7 @@ PADRAO = {  # valores da tabela geral, por metragem
     '37':    {'marcenaria': 'R$ 30.500', 'compras': 'R$ 28.000', 'pacote': 'R$ 15.000', 'total': 'R$ 73.500'},
     '39,88': {'marcenaria': 'R$ 34.500', 'compras': 'R$ 28.000', 'pacote': 'R$ 15.000', 'total': 'R$ 77.500'},
 }
-ROTULO_COMPRAS = 'Móveis complementares, utensílios, enxoval e eletrodomésticos · estimativa'
+ROTULO_COMPRAS = 'Móveis soltos, decoração, utensílios, enxoval e eletrodomésticos · estimativa'
 ROTULO_PACOTE = 'Orçamentos, mão de obra, fotos profissionais e divulgação'
 
 def slugify(nome):
@@ -46,7 +46,7 @@ def gerar(cfg):
     tabela = re.search(r'    <div class="ptable".*?\n    </div>\n', t, re.S).group(0)
     nova = f'''    <div class="ptable unica" role="table" aria-label="Investimento estimado da unidade {unidade}">
       <div class="pr ph-row" role="row"><span role="columnheader"></span><span role="columnheader">Unidade {unidade} · {met} m²</span></div>
-      <div class="pr" role="row"><span role="rowheader"><b>Marcenaria e móveis</b><small>Melhor Móveis</small></span><span role="cell">{v['marcenaria']}</span></div>
+      <div class="pr" role="row"><span role="rowheader"><b>Marcenaria</b><small>Melhor Móveis</small></span><span role="cell">{v['marcenaria']}</span></div>
       <div class="pr" role="row"><span role="rowheader"><b>Compras</b><small>{ROTULO_COMPRAS}</small></span><span role="cell">{v['compras']}</span></div>
       <div class="pr" role="row"><span role="rowheader"><b>Pacote Stay22</b><small>{ROTULO_PACOTE}</small></span><span role="cell">{v['pacote']}</span></div>
       <div class="pr total" role="row"><span role="rowheader"><b>Total geral estimado</b></span><span role="cell">{v['total']}</span></div>
@@ -59,14 +59,21 @@ def gerar(cfg):
     t = trocar(t, '<p style="margin-top:12px">Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis.</p>',
                f'<p class="mm-valor">{v["marcenaria"]}<small>flat de {met} m² · unidade {unidade}</small></p>\n'
                '        <ul class="mm-lista">'
-               '<li>Projeto, medição e fabricação dos móveis planejados</li>'
-               f'<li>Cama {cama} com colchão, sofá-cama, 4 cadeiras de jantar e 2 criados</li>'
-               '<li>Montagem e instalação dos móveis</li>'
+               '<li>Armário e prateleiras na cozinha</li>'
+               '<li>Mesa da sala de jantar</li>'
+               '<li>Prateleira com armário e sistema giratório de TV</li>'
+               '<li>Porta-malas / escrivaninha</li>'
+               '<li>Cabideiro</li>'
+               '<li>Cabeceira da cama (painel)</li>'
+               '<li>Projeto, medição, montagem e instalação</li>'
                '<li>Prazo de entrega, garantia e assistência técnica</li></ul>\n'
                '        <p style="margin-top:12px">Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis.</p>')
     t = t.replace('/* final */', '.price .mm-valor{margin:14px 0 0;font-family:var(--display);font-size:30px;line-height:1.1;color:inherit}\n'
                   '.price .mm-valor small{display:block;margin-top:6px;font-family:var(--body);font-size:13px;letter-spacing:.04em;opacity:.7}\n'
                   '.price .mm-lista{margin:14px 0 0;padding-left:18px;font-size:14px;line-height:1.6}\n/* final */', 1)
+    # cama: só o tamanho da unidade, sem citar o outro
+    t = trocar(t, '<li>Cama Ortobom*</li>', f'<li>Cama Ortobom {cama}</li>')
+    t = trocar(t, '<p class="note">* Cama king nos flats de 39,88 m² e queen nos flats de 37 m².</p>', '')
     cond = cfg.get('condicoes') or 'Condições de pagamento a combinar.'
     if cfg.get('validade'):
         cond += f' Proposta válida até {cfg["validade"]}.'
