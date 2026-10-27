@@ -54,6 +54,19 @@ def gerar(cfg):
 '''
     t = t.replace(tabela, nova)
     t = t.replace('/* final */', '.ptable.unica .pr{grid-template-columns:minmax(0,1fr) auto}\n.ptable.unica .pr.total{grid-template-columns:minmax(0,1fr) auto}\n/* final */', 1)
+    # quadro da Melhor Móveis: valor da unidade e o que fica sob responsabilidade dela
+    cama = 'king' if met == '39,88' else 'queen'
+    t = trocar(t, '<p style="margin-top:12px">Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis.</p>',
+               f'<p class="mm-valor">{v["marcenaria"]}<small>flat de {met} m² · unidade {unidade}</small></p>\n'
+               '        <ul class="mm-lista">'
+               '<li>Projeto, medição e fabricação dos móveis planejados</li>'
+               f'<li>Cama {cama} com colchão, sofá-cama, 4 cadeiras de jantar e 2 criados</li>'
+               '<li>Montagem e instalação dos móveis</li>'
+               '<li>Prazo de entrega, garantia e assistência técnica</li></ul>\n'
+               '        <p style="margin-top:12px">Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis.</p>')
+    t = t.replace('/* final */', '.price .mm-valor{margin:14px 0 0;font-family:var(--display);font-size:30px;line-height:1.1;color:inherit}\n'
+                  '.price .mm-valor small{display:block;margin-top:6px;font-family:var(--body);font-size:13px;letter-spacing:.04em;opacity:.7}\n'
+                  '.price .mm-lista{margin:14px 0 0;padding-left:18px;font-size:14px;line-height:1.6}\n/* final */', 1)
     cond = cfg.get('condicoes') or 'Condições de pagamento a combinar.'
     if cfg.get('validade'):
         cond += f' Proposta válida até {cfg["validade"]}.'
