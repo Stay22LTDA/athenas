@@ -64,7 +64,7 @@ def gerar(cfg):
                '<li>Prateleira com armário e sistema giratório de TV</li>'
                '<li>Porta-malas / escrivaninha</li>'
                '<li>Cabideiro</li>'
-               '<li>Cabeceira da cama (painel)</li>'
+               '<li>Cabeceira da cama (painel) com criados embutidos</li>'
                f'<li>Cama {cama} com colchão Rondomóveis, sofá-cama e 4 cadeiras de jantar</li>'
                '<li>Projeto, medição, montagem e instalação</li>'
                '<li>Prazo de entrega, garantia e assistência técnica</li></ul>\n'
