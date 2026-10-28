@@ -4,6 +4,7 @@
   "metragem": "39,88",
   "valores": {},
   "condicoes": "Entrada de R$ 20.000 e saldo em 6 parcelas.",
-  "validade": "10/11/2026",
-  "mensagem": "Texto opcional que substitui a frase de abertura."
+  "mensagem": "Texto opcional que substitui a frase de abertura.",
+  "data": "28/10/2026",
+  "validade_dias": 7
 }

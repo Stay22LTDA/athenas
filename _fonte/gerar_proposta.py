@@ -76,8 +76,18 @@ def gerar(cfg):
     t = trocar(t, '<li>Cama com colchão Rondomóveis*</li>', f'<li>Cama {cama} com colchão Rondomóveis</li>')
     t = trocar(t, '<p class="note">* Cama king nos flats de 39,88 m² e queen nos flats de 37 m².</p>', '')
     cond = cfg.get('condicoes') or 'Condições de pagamento a combinar.'
-    if cfg.get('validade'):
-        cond += f' Proposta válida até {cfg["validade"]}.'
+    validade = cfg.get('validade')
+    if cfg.get('data'):  # data de emissão + validade em dias (padrão 7)
+        from datetime import datetime, timedelta
+        dias = int(cfg.get('validade_dias', 7))
+        validade = validade or (datetime.strptime(cfg['data'], '%d/%m/%Y') + timedelta(days=dias)).strftime('%d/%m/%Y')
+        cond += f' Proposta realizada em {cfg["data"]}, com validade de {dias} dias (até {validade}).'
+        t = trocar(t, f'    <p class="para">Proposta exclusiva para <b>{nome}</b></p>',
+                   f'    <p class="para">Proposta exclusiva para <b>{nome}</b></p>\n'
+                   f'    <p class="para-data">Proposta de {cfg["data"]} · válida até {validade}</p>')
+        t = t.replace('/* final */', '.hero p.para-data{margin:6px 0 0;font-size:14px;letter-spacing:.04em;color:#C9B9A2}\n/* final */', 1)
+    elif validade:
+        cond += f' Proposta válida até {validade}.'
     t = trocar(t, 'Condições de pagamento a combinar.</p></div>', f'{cond}</p></div>')
     # WhatsApp já identifica o proprietário
     t = t.replace('Ol%C3%A1%21%20Vi%20a%20proposta', quote(f'Olá! Aqui é {nome}, da unidade {unidade}. Vi a proposta'))
