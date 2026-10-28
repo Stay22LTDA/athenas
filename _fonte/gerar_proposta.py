@@ -58,16 +58,6 @@ def gerar(cfg):
     cama = 'king' if met == '39,88' else 'queen'
     t = trocar(t, '<p style="margin-top:12px">Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis.</p>',
                f'<p class="mm-valor">{v["marcenaria"]}<small>flat de {met} m² · unidade {unidade}</small></p>\n'
-               '        <ul class="mm-lista">'
-               '<li>Armário e prateleiras na cozinha</li>'
-               '<li>Mesa da sala de jantar</li>'
-               '<li>Prateleira com armário e sistema giratório de TV</li>'
-               '<li>Porta-malas / escrivaninha</li>'
-               '<li>Cabideiro</li>'
-               '<li>Cabeceira da cama (painel) com criados embutidos</li>'
-               f'<li>Cama {cama} com colchão Rondomóveis, sofá-cama viúva (1,20 m) e 4 cadeiras de jantar</li>'
-               '<li>Projeto, medição, montagem e instalação</li>'
-               '<li>Prazo de entrega, garantia e assistência técnica</li></ul>\n'
                '        <p style="margin-top:12px">Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis.</p>')
     t = t.replace('/* final */', '.price .mm-valor{margin:14px 0 0;font-family:var(--display);font-size:30px;line-height:1.1;color:inherit}\n'
                   '.price .mm-valor small{display:block;margin-top:6px;font-family:var(--body);font-size:13px;letter-spacing:.04em;opacity:.7}\n'
