@@ -65,7 +65,7 @@ def gerar(cfg):
                '<li>Porta-malas / escrivaninha</li>'
                '<li>Cabideiro</li>'
                '<li>Cabeceira da cama (painel) com criados embutidos</li>'
-               f'<li>Cama {cama} com colchão Rondomóveis, sofá-cama e 4 cadeiras de jantar</li>'
+               f'<li>Cama {cama} com colchão Rondomóveis, sofá-cama viúva (1,20 m) e 4 cadeiras de jantar</li>'
                '<li>Projeto, medição, montagem e instalação</li>'
                '<li>Prazo de entrega, garantia e assistência técnica</li></ul>\n'
                '        <p style="margin-top:12px">Orçamento, contrato, prazo e pagamento diretamente com a Melhor Móveis.</p>')
