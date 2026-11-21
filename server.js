@@ -21,7 +21,7 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'same-origin',
-    'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; form-action 'self' https://wa.me; frame-ancestors 'none'",
+    'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; frame-ancestors 'none'",
   });
   next();
 });
@@ -944,6 +944,10 @@ app.post('/itens/:id', exigirLogin, exigirAdmin, (req, res) => {
   if (diff.length) registrar(u.id, it.id, req.usuario.id, 'Item atualizado', diff.join('; '));
   res.redirect('/itens/' + it.id + '?msg=salvo');
 });
+
+// Se a aba de envio for recarregada (GET), volta para a página certa em vez de dar "página não encontrada".
+app.get('/itens/:id/enviar', exigirLogin, (req, res) => res.redirect('/itens/' + Number(req.params.id)));
+app.get('/u/:id/enviar-lote', exigirLogin, (req, res) => res.redirect('/u/' + Number(req.params.id) + '#lote'));
 
 app.post('/itens/:id/enviar', exigirLogin, exigirAdmin, (req, res) => {
   const x = itemComAcesso(req, req.params.id);
