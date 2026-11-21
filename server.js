@@ -321,7 +321,7 @@ app.get('/proprietarios', exigirLogin, exigirAdmin, (req, res) => {
     ${us.map(u => `<tr class="${u.ativo ? '' : 'inativo'}">
       <td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${esc(u.whatsapp || '')}</td><td>${esc(u.unidades || '—')}</td>
       <td>${u.papel === 'admin' ? 'Equipe Stay22' : 'Proprietário'}${u.ativo ? '' : ' · desativado'}</td>
-      <td class="acoes-linha">${u.id === req.usuario.id ? '' : `
+      <td class="acoes-linha"><a href="/proprietarios/${u.id}">Editar</a>${u.id === req.usuario.id ? '' : `
         <form method="post" action="/proprietarios/${u.id}/senha"><button class="link">Gerar nova senha</button></form>
         <form method="post" action="/proprietarios/${u.id}/ativo"><button class="link">${u.ativo ? 'Desativar' : 'Reativar'}</button></form>`}
       </td></tr>`).join('')}
@@ -359,6 +359,36 @@ app.post('/proprietarios', exigirLogin, exigirAdmin, (req, res) => {
   const r = db.prepare('INSERT INTO usuarios (nome, email, whatsapp, senha_hash, papel, trocar_senha, criado_em) VALUES (?,?,?,?,?,1,?)')
     .run(nome.trim(), email.trim().toLowerCase(), whatsapp || null, hashSenha(senha), papel === 'admin' ? 'admin' : 'proprietario', U.agora());
   telaCredenciais(req, res, db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(r.lastInsertRowid)), senha);
+});
+app.get('/proprietarios/:id', exigirLogin, exigirAdmin, (req, res) => {
+  const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(req.params.id));
+  if (!u) return erro(req, res, 404, 'Acesso não encontrado.');
+  pagina(req, res, 'Editar acesso', `
+  <p class="trilha"><a href="/proprietarios">← Proprietários</a></p>
+  <section class="cartao estreito-esq">
+    <h1>${esc(u.nome)}</h1>
+    <p class="sub">A senha não muda. Se trocar o e-mail, o login passa a ser o novo e-mail.</p>
+    ${req.query.erro ? '<p class="erro">Já existe outro acesso com esse e-mail.</p>' : ''}
+    <form method="post" action="/proprietarios/${u.id}/editar" class="form grade2">
+      <label>Nome completo<input name="nome" value="${esc(u.nome)}" required></label>
+      <label>E-mail (login)<input name="email" type="email" value="${esc(u.email)}" required></label>
+      <label>WhatsApp (com DDD)<input name="whatsapp" value="${esc(u.whatsapp || '')}"></label>
+      <button>Salvar</button>
+    </form>
+  </section>`);
+});
+app.post('/proprietarios/:id/editar', exigirLogin, exigirAdmin, (req, res) => {
+  const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(req.params.id));
+  if (!u) return erro(req, res, 404, 'Acesso não encontrado.');
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const nome = String(req.body.nome || '').trim();
+  if (!email || !nome) return res.redirect('/proprietarios/' + u.id);
+  if (db.prepare('SELECT 1 FROM usuarios WHERE email = ? AND id <> ?').get(email, u.id)) return res.redirect('/proprietarios/' + u.id + '?erro=1');
+  db.prepare('UPDATE usuarios SET nome = ?, email = ?, whatsapp = ? WHERE id = ?').run(nome, email, req.body.whatsapp || null, u.id);
+  if (email !== u.email.toLowerCase()) {
+    for (const un of db.prepare('SELECT id FROM unidades WHERE proprietario_id = ?').all(u.id)) registrar(un.id, null, req.usuario.id, 'Login do proprietário alterado', `${u.email} → ${email}`);
+  }
+  res.redirect('/proprietarios?msg=salvo');
 });
 app.post('/proprietarios/:id/senha', exigirLogin, exigirAdmin, (req, res) => {
   const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(req.params.id));
