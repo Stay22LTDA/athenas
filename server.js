@@ -82,7 +82,7 @@ app.use((req, res, next) => {
 const MSGS = {
   salvo: 'Alterações salvas.', comprado: 'Compra registrada. Obrigado!', revisar: 'Pedido de revisão enviado à Stay22.',
   anexo: 'Arquivo anexado.', senha: 'Senha alterada.', criada: 'Unidade criada.', item: 'Item adicionado.',
-  excluido: 'Item excluído.', trocar: 'Bem-vindo! Por segurança, crie uma senha sua antes de continuar.',
+  excluido: 'Excluído.', trocar: 'Bem-vindo! Por segurança, crie uma senha sua antes de continuar.',
   enviado: 'Link marcado como enviado.',
 };
 function aviso(req) { return MSGS[req.query.msg] || ''; }
@@ -600,6 +600,10 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   <section class="cartao" id="config">
     <h2>Dados da unidade</h2>
     <form method="post" action="/u/${u.id}/config" class="form grade2">${formUnidade(u, proprietarios(), false)}<button>Salvar dados</button></form>
+    <details class="perigo"><summary>Excluir unidade</summary>
+      <p class="mini">Apaga a unidade com todos os itens, parcelas, cronograma, arquivos e histórico. Não tem volta.</p>
+      <form method="post" action="/u/${u.id}/excluir" class="inline"><label class="mini">Digite o número da unidade para confirmar <input name="confirmo" required class="curto"></label><button class="vermelho pequeno">Excluir unidade</button></form>
+    </details>
   </section>` : '';
 
   pagina(req, res, `Unidade ${u.numero}`, `
@@ -621,6 +625,16 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   ${docs}
   ${adminExtra}
   ${historico}`);
+});
+
+app.post('/u/:id/excluir', exigirLogin, exigirAdmin, (req, res) => {
+  const u = unidadeComAcesso(req, req.params.id);
+  if (!u) return erro(req, res, 404, 'Unidade não encontrada.');
+  if (String(req.body.confirmo || '').trim() !== String(u.numero)) return res.redirect('/u/' + u.id + '#config');
+  for (const a of db.prepare('SELECT arquivo FROM anexos WHERE unidade_id = ?').all(u.id)) fs.unlink(path.join(DATA_DIR, 'anexos', path.basename(a.arquivo)), () => {});
+  db.prepare('DELETE FROM unidades WHERE id = ?').run(u.id);
+  console.log(`Unidade ${u.numero} (id ${u.id}) excluída por usuário ${req.usuario.id}`);
+  res.redirect('/?msg=excluido');
 });
 
 app.post('/u/:id/itens', exigirLogin, exigirAdmin, (req, res) => {
