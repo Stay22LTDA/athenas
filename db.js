@@ -110,6 +110,14 @@ CREATE INDEX IF NOT EXISTS idx_itens_unidade ON itens(unidade_id);
 CREATE INDEX IF NOT EXISTS idx_hist_unidade ON historico(unidade_id, id);
 `);
 
+// Migrações: colunas novas em bancos que já existem.
+function garantirColuna(tabela, coluna, tipo) {
+  const cols = db.prepare(`PRAGMA table_info(${tabela})`).all().map(c => c.name);
+  if (!cols.includes(coluna)) db.exec(`ALTER TABLE ${tabela} ADD COLUMN ${coluna} ${tipo}`);
+}
+garantirColuna('itens', 'cupom', 'TEXT');
+garantirColuna('itens', 'dica_compra', 'TEXT');
+
 // Segredo das sessões: gerado uma vez e guardado no próprio banco.
 function segredo() {
   const r = db.prepare("SELECT valor FROM config WHERE chave='segredo'").get();

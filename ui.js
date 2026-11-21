@@ -117,6 +117,7 @@ ${aviso ? `<div class="aviso">${esc(aviso)}</div>` : ''}
 ${corpo}
 </main>
 <footer>Stay22 · Gestão de locação por temporada · São Lourenço/MG</footer>
+<script src="/public/app.js" defer></script>
 </body></html>`;
 }
 

@@ -173,3 +173,14 @@ code{background:var(--paper-2);padding:2px 8px;border-radius:6px;font-size:16px}
   .topo .marca img{height:32px}
   .topo .menu{gap:14px}
 }
+
+/* dados para a compra */
+.dados-compra{border:1px dashed var(--gold-soft);border-radius:12px;padding:6px 14px;margin:0 0 14px}
+.copiavel{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--paper-2)}
+.copiavel:last-child{border-bottom:0}
+.copiavel .rotulo{color:var(--muted);font-size:13px}
+.copiavel code{user-select:all}
+code.cupom{font-size:18px;letter-spacing:.06em;background:#FBF1D2;color:#6E5410;justify-self:start}
+.dica{padding:8px 0;font-size:14px}
+button.copiado{background:var(--sage)!important;border-color:var(--sage)!important;color:#fff!important}
+@media (max-width:620px){.copiavel{grid-template-columns:1fr auto}.copiavel .rotulo{grid-column:1/-1}}

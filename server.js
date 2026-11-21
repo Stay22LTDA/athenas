@@ -21,7 +21,7 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'same-origin',
-    'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'none'; form-action 'self' https://wa.me; frame-ancestors 'none'",
+    'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; form-action 'self' https://wa.me; frame-ancestors 'none'",
   });
   next();
 });
@@ -683,7 +683,7 @@ app.post('/parcelas/:id', exigirLogin, exigirAdmin, (req, res) => {
 // ---------- Item ----------
 const CAMPOS_ITEM = {
   categoria: 'Categoria', nome: 'Item', qtd: 'Quantidade', status: 'Status', valor_orcado: 'Valor orçado', valor_pago: 'Valor pago',
-  loja: 'Loja', link: 'Link', oferta_ate: 'Oferta até', forma_pagamento: 'Forma de pagamento', parcelas_cartao: 'Parcelas no cartão',
+  loja: 'Loja', link: 'Link', oferta_ate: 'Oferta até', cupom: 'Cupom', dica_compra: 'Dica de compra', forma_pagamento: 'Forma de pagamento', parcelas_cartao: 'Parcelas no cartão',
   numero_pedido: 'Nº do pedido', link_enviado_em: 'Link enviado em', comprado_em: 'Comprado em', previsao_entrega: 'Previsão de entrega',
   entregue_em: 'Entregue em', instalacao: 'Instalação', instalador: 'Quem instala', instalacao_data: 'Data da instalação',
   nf_ok: 'NF em nome do proprietário', obs_interna: 'Observação interna',
@@ -719,6 +719,7 @@ function guardarAnexo(req, u, it, tipo) {
   return true;
 }
 
+function enderecoEntrega(u) { return u.endereco_entrega || `Edifício Athenas – unidade ${u.numero}, São Lourenço/MG`; }
 function mensagemWhatsApp(req, it, u, prop) {
   const linhas = [
     `Olá, ${primeiroNome(prop && prop.nome)}! Tudo bem?`, '',
@@ -728,8 +729,11 @@ function mensagemWhatsApp(req, it, u, prop) {
   if (it.loja) linhas.push(`Loja: ${it.loja}`);
   if (it.valor_orcado) linhas.push(`Valor: ${moeda(it.valor_orcado)}`);
   if (it.oferta_ate) linhas.push(`Preço promocional válido até ${data(it.oferta_ate)}`);
-  linhas.push('', 'Para ver os detalhes, comprar e registrar a compra, acesse o painel:', `${baseUrl(req)}/itens/${it.id}`, '',
-    'Lembrando: entrega no endereço da unidade e nota fiscal no seu nome e CPF.', '', 'Qualquer dúvida, estou à disposição.', 'Stay22');
+  if (it.cupom) linhas.push(`Cupom de desconto: *${it.cupom}*`);
+  if (it.dica_compra) linhas.push(`Dica: ${it.dica_compra}`);
+  linhas.push('', `Entrega: ${enderecoEntrega(u)}`, 'Nota fiscal no seu nome e CPF.',
+    '', 'No painel estão o link da loja, o cupom e o endereço prontos para copiar, e é por lá que você registra a compra:', `${baseUrl(req)}/itens/${it.id}`,
+    '', 'Qualquer dúvida, estou à disposição.', 'Stay22');
   return linhas.join('\n');
 }
 
@@ -742,7 +746,7 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
   const anexos = db.prepare('SELECT * FROM anexos WHERE item_id = ? ORDER BY id DESC').all(it.id);
   const hist = db.prepare('SELECT h.*, us.nome AS quem FROM historico h LEFT JOIN usuarios us ON us.id = h.usuario_id WHERE h.item_id = ? ORDER BY h.id DESC').all(it.id);
   const pa = prazoAprovacao(it);
-  const endereco = u.endereco_entrega || `Edifício Athenas – unidade ${u.numero}, São Lourenço/MG`;
+  const endereco = enderecoEntrega(u);
   const linkLoja = it.link && /^https?:\/\//i.test(it.link) ? it.link : null;
 
   const detalhes = `
@@ -752,6 +756,7 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
     <dt>Loja</dt><dd>${esc(it.loja || '—')}</dd>
     <dt>Valor orçado</dt><dd>${moeda(it.valor_orcado)}</dd>
     ${it.oferta_ate ? `<dt>Oferta válida até</dt><dd class="oferta">${data(it.oferta_ate)}</dd>` : ''}
+    ${it.cupom ? `<dt>Cupom</dt><dd><code>${esc(it.cupom)}</code></dd>` : ''}
     ${it.link_enviado_em ? `<dt>Enviado em</dt><dd>${data(it.link_enviado_em)}${it.status === 'Link enviado' ? ` · aprovar até ${data(pa)}` : ''}</dd>` : ''}
     ${it.valor_pago ? `<dt>Valor pago</dt><dd>${moeda(it.valor_pago)}${it.forma_pagamento ? ' · ' + esc(it.forma_pagamento) : ''}${it.parcelas_cartao ? ` em ${it.parcelas_cartao}x` : ''}</dd>` : ''}
     ${it.numero_pedido ? `<dt>Nº do pedido</dt><dd>${esc(it.numero_pedido)}</dd>` : ''}
@@ -766,9 +771,15 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
   <section class="cartao destaque">
     <h2>${admin ? 'Registrar compra (pelo proprietário)' : 'Comprar este item'}</h2>
     ${linkLoja ? `<a class="botao grande" href="${esc(linkLoja)}" target="_blank" rel="noopener noreferrer">Abrir na loja${it.loja ? ' · ' + esc(it.loja) : ''}</a>` : '<p class="mini">O link da loja ainda não foi cadastrado.</p>'}
+    <div class="dados-compra">
+      ${it.cupom ? `<div class="copiavel"><span class="rotulo">Cupom de desconto</span><code class="cupom">${esc(it.cupom)}</code><button type="button" class="copiar pequeno claro" data-copiar="${esc(it.cupom)}">Copiar cupom</button></div>` : ''}
+      <div class="copiavel"><span class="rotulo">Destinatário</span><span>${esc(prop ? prop.nome : '')}</span>${prop ? `<button type="button" class="copiar pequeno claro" data-copiar="${esc(prop.nome)}">Copiar</button>` : ''}</div>
+      <div class="copiavel"><span class="rotulo">Endereço de entrega</span><span>${esc(endereco)}</span><button type="button" class="copiar pequeno claro" data-copiar="${esc(endereco)}">Copiar</button></div>
+      ${it.dica_compra ? `<div class="dica"><strong>Dica da Stay22:</strong> ${esc(it.dica_compra)}</div>` : ''}
+    </div>
     <div class="instrucoes">
       <strong>Na hora da compra</strong>
-      <ul><li>Endereço de entrega: ${esc(endereco)}</li><li>Nota fiscal no nome e CPF do proprietário</li><li>Depois de pagar, registre a compra aqui embaixo e anexe o comprovante</li></ul>
+      <ul><li>Nota fiscal no nome e CPF do proprietário</li><li>Depois de pagar, registre a compra aqui embaixo e anexe o comprovante</li></ul>
     </div>
     <form method="post" action="/itens/${it.id}/comprei" enctype="multipart/form-data" class="form grade2">
       <label>Valor pago (R$)<input name="valor_pago" inputmode="decimal" required placeholder="${it.valor_orcado ? esc(String(it.valor_orcado).replace('.', ',')) : '0,00'}"></label>
@@ -818,6 +829,8 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
       <label>Valor orçado (R$)<input name="valor_orcado" value="${it.valor_orcado ? esc(String(it.valor_orcado).replace('.', ',')) : ''}"></label>
       <label class="largo">Link de compra<input name="link" type="url" value="${esc(it.link || '')}" placeholder="https://"></label>
       <label>Oferta válida até<input name="oferta_ate" type="date" value="${esc(it.oferta_ate || '')}"></label>
+      <label>Cupom de desconto<input name="cupom" value="${esc(it.cupom || '')}" placeholder="BLACK10"></label>
+      <label class="largo">Dica de compra (o proprietário vê)<input name="dica_compra" value="${esc(it.dica_compra || '')}" placeholder="Pagando no PIX sai 5% mais barato"></label>
       <label>Link enviado em<input name="link_enviado_em" type="date" value="${esc(U.diaDe(it.link_enviado_em) || '')}"></label>
       <label>Comprado em<input name="comprado_em" type="date" value="${esc(it.comprado_em || '')}"></label>
       <label>Valor pago (R$)<input name="valor_pago" value="${it.valor_pago ? esc(String(it.valor_pago).replace('.', ',')) : ''}"></label>
@@ -869,7 +882,7 @@ app.post('/itens/:id', exigirLogin, exigirAdmin, (req, res) => {
   const novo = {
     categoria: (b.categoria || it.categoria).trim(), nome: (b.nome || it.nome).trim(), qtd: b.qtd || null,
     status: STATUS_ITEM.includes(b.status) ? b.status : it.status,
-    loja: b.loja || null, valor_orcado: U.lerMoeda(b.valor_orcado), link: b.link || null, oferta_ate: U.lerData(b.oferta_ate),
+    loja: b.loja || null, valor_orcado: U.lerMoeda(b.valor_orcado), link: b.link || null, oferta_ate: U.lerData(b.oferta_ate), cupom: (b.cupom || '').trim() || null, dica_compra: (b.dica_compra || '').trim() || null,
     link_enviado_em: enviadoDia ? (U.diaDe(it.link_enviado_em) === enviadoDia ? it.link_enviado_em : enviadoDia + 'T15:00:00.000Z') : null,
     comprado_em: U.lerData(b.comprado_em), valor_pago: U.lerMoeda(b.valor_pago),
     forma_pagamento: FORMAS_PAGAMENTO.includes(b.forma_pagamento) ? b.forma_pagamento : null,
@@ -978,7 +991,7 @@ app.get('/u/:id/exportar.csv', exigirLogin, exigirAdmin, (req, res) => {
   const u = unidadeComAcesso(req, req.params.id);
   if (!u) return erro(req, res, 404, 'Unidade não encontrada.');
   const itens = db.prepare('SELECT * FROM itens WHERE unidade_id = ? ORDER BY ordem, id').all(u.id);
-  const cols = ['categoria', 'nome', 'qtd', 'status', 'valor_orcado', 'valor_pago', 'loja', 'link', 'oferta_ate', 'forma_pagamento', 'parcelas_cartao', 'numero_pedido', 'link_enviado_em', 'comprado_em', 'previsao_entrega', 'entregue_em', 'instalacao', 'instalador', 'instalacao_data', 'nf_ok', 'obs_interna'];
+  const cols = ['categoria', 'nome', 'qtd', 'status', 'valor_orcado', 'valor_pago', 'loja', 'link', 'oferta_ate', 'cupom', 'forma_pagamento', 'parcelas_cartao', 'numero_pedido', 'link_enviado_em', 'comprado_em', 'previsao_entrega', 'entregue_em', 'instalacao', 'instalador', 'instalacao_data', 'nf_ok', 'obs_interna'];
   const cel = v => { const s = v === null || v === undefined ? '' : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const fmt = (k, v) => ['valor_orcado', 'valor_pago'].includes(k) && v !== null ? String(v).replace('.', ',') : k.endsWith('_em') || k.endsWith('_ate') || k.endsWith('_data') || k === 'previsao_entrega' ? data(v) : k === 'nf_ok' ? (v ? 'sim' : 'não') : v;
   const csv = '﻿' + [cols.map(k => CAMPOS_ITEM[k] || k).join(';'), ...itens.map(i => cols.map(k => cel(fmt(k, i[k]))).join(';'))].join('\r\n');
