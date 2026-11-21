@@ -1,0 +1,17 @@
+{
+  "name": "painel-montagem-stay22",
+  "version": "1.0.0",
+  "description": "Painel de montagem das unidades Stay22 (Edifício Athenas)",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node --no-warnings server.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.2"
+  }
+}
