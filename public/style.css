@@ -80,6 +80,8 @@ h3{font-size:19px;margin:18px 0 6px;color:var(--ink-2)}
 .item .nome em{font-style:normal;color:var(--muted)}
 .item .val{font-variant-numeric:tabular-nums}
 .item.cancelado{opacity:.55}
+.item.cab{border-bottom:0;padding:14px 4px 0;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;position:sticky;top:0;background:var(--branco);z-index:1}
+.item.cab:hover{background:var(--branco)}
 
 /* tabelas */
 .tabela-rolagem{overflow-x:auto}
@@ -161,6 +163,7 @@ code{background:var(--paper-2);padding:2px 8px;border-radius:6px;font-size:16px}
   .cartao{padding:16px;border-radius:12px}
   .form.grade2,.form.grade3{grid-template-columns:1fr}
   .item{grid-template-columns:1fr 1fr;gap:4px 10px;padding:12px 2px}
+  .item.cab{display:none}
   .item .nome{grid-column:1/-1;font-weight:500}
   .item small{display:block}
   .item .st{grid-column:1/-1}

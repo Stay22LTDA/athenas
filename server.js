@@ -618,7 +618,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   <section class="cartao" id="itens">
     <h2>Itens da montagem</h2>
     ${chips}
-    ${listaItens || '<p class="mini">Nenhum item com esse status.</p>'}
+    ${listaItens ? `<div class="item cab"><span>Item</span><span>Status da compra</span><span>Orçado</span><span>Pago</span><span>Entrega</span><span>Montagem / instalação</span></div>` + listaItens : '<p class="mini">Nenhum item com esse status.</p>'}
   </section>
   ${parcelas}
   ${cronograma}
