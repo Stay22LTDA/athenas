@@ -866,7 +866,7 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
       <label>Status<select name="status">${options(STATUS_ITEM, it.status)}</select></label>
       <label>Loja<input name="loja" value="${esc(it.loja || '')}"></label>
       <label>Valor orçado (R$)<input name="valor_orcado" value="${it.valor_orcado ? esc(String(it.valor_orcado).replace('.', ',')) : ''}"></label>
-      <label class="largo">Link de compra<input name="link" type="url" value="${esc(it.link || '')}" placeholder="https://"></label>
+      <label class="largo">Link de compra (pode colar o link inteiro: o painel limpa)<input name="link" value="${esc(it.link || '')}" placeholder="https://"></label>
       <label>Oferta válida até<input name="oferta_ate" type="date" value="${esc(it.oferta_ate || '')}"></label>
       <label>Cupom de desconto<input name="cupom" value="${esc(it.cupom || '')}" placeholder="BLACK10"></label>
       <label class="largo">Dica de compra (o proprietário vê)<input name="dica_compra" value="${esc(it.dica_compra || '')}" placeholder="Pagando no PIX sai 5% mais barato"></label>
@@ -921,7 +921,7 @@ app.post('/itens/:id', exigirLogin, exigirAdmin, (req, res) => {
   const novo = {
     categoria: (b.categoria || it.categoria).trim(), nome: (b.nome || it.nome).trim(), qtd: b.qtd || null,
     status: STATUS_ITEM.includes(b.status) ? b.status : it.status,
-    loja: b.loja || null, valor_orcado: U.lerMoeda(b.valor_orcado), link: b.link || null, oferta_ate: U.lerData(b.oferta_ate), cupom: (b.cupom || '').trim() || null, dica_compra: (b.dica_compra || '').trim() || null,
+    loja: b.loja || null, valor_orcado: U.lerMoeda(b.valor_orcado), link: U.limparLink(b.link), oferta_ate: U.lerData(b.oferta_ate), cupom: (b.cupom || '').trim() || null, dica_compra: (b.dica_compra || '').trim() || null,
     link_enviado_em: enviadoDia ? (U.diaDe(it.link_enviado_em) === enviadoDia ? it.link_enviado_em : enviadoDia + 'T15:00:00.000Z') : null,
     comprado_em: U.lerData(b.comprado_em), valor_pago: U.lerMoeda(b.valor_pago),
     forma_pagamento: FORMAS_PAGAMENTO.includes(b.forma_pagamento) ? b.forma_pagamento : null,

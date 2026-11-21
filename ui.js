@@ -69,6 +69,20 @@ function lerData(s) {
   if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
   return null;
 }
+// Tira do link os códigos de rastreamento (Google, Meta, UTM) e mantém o que identifica o produto.
+function limparLink(s) {
+  s = String(s || '').trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    for (const k of [...u.searchParams.keys()]) {
+      if (/^(utm_|utmi_|gad_|gclid$|gclsrc$|gbraid$|wbraid$|fbclid$|msclkid$|dclid$|yclid$|_ga$|_gl$|mc_|srsltid$|ref_?src$)/i.test(k)) u.searchParams.delete(k);
+    }
+    u.hash = '';
+    return u.toString();
+  } catch (_) { return s; }
+}
 function soDigitos(s) { return String(s || '').replace(/\D/g, ''); }
 function waNumero(s) {
   let d = soDigitos(s);
@@ -123,5 +137,5 @@ ${corpo}
 
 module.exports = {
   esc, hoje, agora, addDias, addDiasUteis, diasEntre, diaDe, data, dataHora, moeda, lerMoeda, lerData,
-  soDigitos, waNumero, pill, classeStatus, options, layout,
+  soDigitos, waNumero, limparLink, pill, classeStatus, options, layout,
 };
