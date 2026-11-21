@@ -383,7 +383,7 @@ function formUnidade(u, props, nova) {
   <label>Proprietário<select name="proprietario_id"><option value="">—</option>${props.map(p => `<option value="${p.id}"${p.id === u.proprietario_id ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>
   <label>Área privativa<input name="area" value="${esc(u.area || '')}" placeholder="39,88 m²"></label>
   <label>Assinatura do contrato<input name="data_assinatura" type="date" value="${esc(u.data_assinatura || '')}"></label>
-  <label>Prazo de implantação (dias corridos)<input name="prazo_dias" type="number" min="1" value="${esc(u.prazo_dias || 120)}"></label>
+  <label>Prazo de implantação (dias corridos, conforme contrato)<input name="prazo_dias" type="number" min="1" required value="${esc(u.prazo_dias || '')}"></label>
   <label>Verba de compras estimada (R$)<input name="verba_estimada" value="${u.verba_estimada ? esc(String(u.verba_estimada).replace('.', ',')) : ''}" placeholder="21.243,06"></label>
   <label>Status da unidade<select name="status">${options(['Em montagem', 'Entregue ao proprietário', 'Pausada'], u.status || 'Em montagem')}</select></label>
   <label class="largo">Endereço de entrega das compras<input name="endereco_entrega" value="${esc(u.endereco_entrega || '')}" placeholder="Via Othon de Carvalho, 96, apto 802 – São Lourenço/MG – CEP 37470-000"></label>
@@ -396,7 +396,7 @@ function lerUnidade(b) {
   return {
     numero: String(b.numero || '').trim(), edificio: String(b.edificio || 'Edifício Athenas').trim(),
     proprietario_id: b.proprietario_id ? Number(b.proprietario_id) : null, area: b.area || null,
-    data_assinatura: U.lerData(b.data_assinatura), prazo_dias: Number(b.prazo_dias) || 120,
+    data_assinatura: U.lerData(b.data_assinatura), prazo_dias: Number(b.prazo_dias) || 90,
     verba_estimada: U.lerMoeda(b.verba_estimada) || 0, status: b.status || 'Em montagem',
     endereco_entrega: b.endereco_entrega || null, obs_interna: b.obs_interna || null,
   };
