@@ -1047,4 +1047,13 @@ app.use((err, req, res, next) => {
 app.use((req, res) => erro(req, res, 404, 'Página não encontrada.'));
 
 const PORTA = process.env.PORT || 3000;
-app.listen(PORTA, () => console.log('Painel Stay22 na porta ' + PORTA + ' · dados em ' + DATA_DIR));
+const servidor = app.listen(PORTA, () => console.log('Painel Stay22 na porta ' + PORTA + ' · dados em ' + DATA_DIR));
+
+// Desligamento normal (o Railway envia SIGTERM ao publicar uma versão nova): fecha tudo e sai sem erro.
+function desligar(sinal) {
+  console.log(`Recebido ${sinal}: encerrando o painel normalmente.`);
+  servidor.close(() => { try { db.close(); } catch (_) {} process.exit(0); });
+  setTimeout(() => process.exit(0), 5000).unref();
+}
+process.on('SIGTERM', () => desligar('SIGTERM'));
+process.on('SIGINT', () => desligar('SIGINT'));
