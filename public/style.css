@@ -184,3 +184,10 @@ code.cupom{font-size:18px;letter-spacing:.06em;background:#FBF1D2;color:#6E5410;
 .dica{padding:8px 0;font-size:14px}
 button.copiado{background:var(--sage)!important;border-color:var(--sage)!important;color:#fff!important}
 @media (max-width:620px){.copiavel{grid-template-columns:1fr auto}.copiavel .rotulo{grid-column:1/-1}}
+
+h3.passo{margin:18px 0 8px;font-size:21px}
+details.opcional{margin-top:0}
+details.opcional .form{margin-top:10px}
+.lote{display:flex;flex-direction:column;gap:6px;margin:8px 0 14px}
+.lote label.check{align-items:flex-start;font-size:14px;color:var(--ink)}
+.lote input{margin-top:4px}

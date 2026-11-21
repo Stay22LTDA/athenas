@@ -585,7 +585,16 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     <ul class="historico">${hist.map(h => `<li><span class="mini">${U.dataHora(h.criado_em)} · ${esc(h.quem || 'Sistema')}</span><div>${esc(h.acao)}${h.item_nome ? ` · <a href="/itens/${h.item_id}">${esc(h.item_nome)}</a>` : ''}${h.detalhes ? `<span class="mini"> — ${esc(h.detalhes)}</span>` : ''}</div></li>`).join('') || '<li class="mini">Sem registros.</li>'}</ul>
   </section>`;
 
+  const prontos = r.itens.filter(i => ['Orçado', 'Revisar', 'Link enviado'].includes(i.status) && i.link && i.valor_orcado);
   const adminExtra = admin ? `
+  <section class="cartao" id="lote">
+    <h2>Enviar vários itens numa mensagem</h2>
+    ${prontos.length ? `<form method="post" action="/u/${u.id}/enviar-lote" target="_blank">
+      <p class="mini">Itens com link e valor cadastrados. Marque os que quer mandar juntos (por exemplo, da mesma loja).</p>
+      <div class="lote">${prontos.map(i => `<label class="check"><input type="checkbox" name="itens" value="${i.id}"> <span>${esc(i.nome)} <span class="mini">· ${esc(i.loja || '')} · ${moeda(i.valor_orcado)}${i.cupom ? ' · cupom ' + esc(i.cupom) : ''}${i.link_enviado_em ? ' · já enviado em ' + data(i.link_enviado_em) : ''}</span></span></label>`).join('')}</div>
+      <button class="whatsapp">Enviar os marcados pelo WhatsApp</button>
+    </form>` : '<p class="mini">Quando houver itens com link e valor cadastrados, eles aparecem aqui para enviar juntos.</p>'}
+  </section>
   <section class="cartao" id="novo-item">
     <h2>Adicionar item</h2>
     <form method="post" action="/u/${u.id}/itens" class="form grade3">
@@ -635,6 +644,31 @@ app.post('/u/:id/excluir', exigirLogin, exigirAdmin, (req, res) => {
   db.prepare('DELETE FROM unidades WHERE id = ?').run(u.id);
   console.log(`Unidade ${u.numero} (id ${u.id}) excluída por usuário ${req.usuario.id}`);
   res.redirect('/?msg=excluido');
+});
+
+app.post('/u/:id/enviar-lote', exigirLogin, exigirAdmin, (req, res) => {
+  const u = unidadeComAcesso(req, req.params.id);
+  if (!u) return erro(req, res, 404, 'Unidade não encontrada.');
+  const prop = u.proprietario_id ? db.prepare('SELECT * FROM usuarios WHERE id = ?').get(u.proprietario_id) : null;
+  if (!prop) return erro(req, res, 400, 'Vincule um proprietário à unidade.');
+  const ids = [].concat(req.body.itens || []).map(Number).filter(Boolean);
+  const itens = ids.map(id => db.prepare('SELECT * FROM itens WHERE id = ? AND unidade_id = ?').get(id, u.id)).filter(Boolean);
+  if (!itens.length) return res.redirect('/u/' + u.id + '#lote');
+  const agora = U.agora();
+  const l = [`Olá, ${primeiroNome(prop.nome)}! Tudo bem?`, '', `Separei ${itens.length} itens para a montagem da unidade ${u.numero}:`, ''];
+  itens.forEach((it, n) => {
+    const novo = { link_enviado_em: agora };
+    if (['A orçar', 'Orçado', 'Revisar'].includes(it.status)) novo.status = 'Link enviado';
+    salvarItem(it, novo);
+    registrar(u.id, it.id, req.usuario.id, it.link_enviado_em ? 'Link reenviado ao proprietário (lote)' : 'Link enviado ao proprietário (lote)', `${it.loja || ''} ${moeda(it.valor_orcado)}`.trim());
+    l.push(`${n + 1}. *${it.nome}*${it.qtd && it.qtd !== '1' ? ` (${it.qtd})` : ''}`);
+    l.push(`   ${[it.loja, moeda(it.valor_orcado)].filter(Boolean).join(' · ')}${it.cupom ? ` · cupom *${it.cupom}*` : ''}${it.oferta_ate ? ` · oferta até ${data(it.oferta_ate)}` : ''}`);
+  });
+  const total = itens.reduce((a, i) => a + (Number(i.valor_orcado) || 0), 0);
+  l.push('', `Total orçado: ${moeda(total)}`, '', `Entrega: ${enderecoEntrega(u)}`, 'Nota fiscal no seu nome e CPF.',
+    '', 'No painel estão os links das lojas, os cupons e o endereço prontos para copiar, e é por lá que você registra cada compra:', `${baseUrl(req)}/u/${u.id}`,
+    '', 'Qualquer dúvida, estou à disposição.', 'Stay22');
+  res.redirect(`https://wa.me/${U.waNumero(prop.whatsapp)}?text=${encodeURIComponent(l.join('\n'))}`);
 });
 
 app.post('/u/:id/itens', exigirLogin, exigirAdmin, (req, res) => {
@@ -781,13 +815,18 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
       <strong>Na hora da compra</strong>
       <ul><li>Nota fiscal no nome e CPF do proprietário</li><li>Depois de pagar, registre a compra aqui embaixo e anexe o comprovante</li></ul>
     </div>
+    <h3 class="passo">Já comprou? Registre aqui</h3>
     <form method="post" action="/itens/${it.id}/comprei" enctype="multipart/form-data" class="form grade2">
-      <label>Valor pago (R$)<input name="valor_pago" inputmode="decimal" required placeholder="${it.valor_orcado ? esc(String(it.valor_orcado).replace('.', ',')) : '0,00'}"></label>
+      <label>Valor pago (R$)<input name="valor_pago" inputmode="decimal" required value="${it.valor_orcado ? esc(String(it.valor_orcado).replace('.', ',')) : ''}" placeholder="0,00"></label>
       <label>Forma de pagamento<select name="forma_pagamento" required><option value="">Selecione</option>${options(FORMAS_PAGAMENTO, null)}</select></label>
-      <label>Parcelas (se cartão)<input name="parcelas_cartao" type="number" min="1" max="24"></label>
-      <label>Nº do pedido<input name="numero_pedido"></label>
-      <label>Previsão de entrega<input name="previsao_entrega" type="date"></label>
-      <label>Comprovante ou nota fiscal (PDF ou foto)<input type="file" name="arquivo" accept="application/pdf,image/*"></label>
+      <label class="largo">Comprovante ou print do pedido (PDF ou foto)<input type="file" name="arquivo" accept="application/pdf,image/*"></label>
+      <details class="largo opcional"><summary>Mais detalhes (opcional)</summary>
+        <div class="form grade3">
+          <label>Parcelas (se cartão)<input name="parcelas_cartao" type="number" min="1" max="24"></label>
+          <label>Nº do pedido<input name="numero_pedido"></label>
+          <label>Previsão de entrega<input name="previsao_entrega" type="date"></label>
+        </div>
+      </details>
       <button>Registrar compra</button>
     </form>
     ${!admin ? `
