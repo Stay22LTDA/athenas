@@ -1,5 +1,10 @@
 // Utilitários de formatação e o layout das páginas.
 const TZ = 'America/Sao_Paulo';
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+// Versão dos arquivos de estilo e script: muda a cada publicação, para o navegador nunca usar uma cópia antiga.
+const VERSAO = crypto.createHash('md5').update(['style.css', 'app.js'].map(f => fs.readFileSync(path.join(__dirname, 'public', f))).join('')).digest('hex').slice(0, 8);
 
 function esc(v) {
   if (v === null || v === undefined) return '';
@@ -122,7 +127,7 @@ function layout({ titulo, usuario, corpo, aviso }) {
 <title>${esc(titulo)} · Stay22</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/public/style.css">
+<link rel="stylesheet" href="/public/style.css?v=${VERSAO}">
 <link rel="icon" href="/public/logo-stay22-marrom.png">
 </head><body>
 ${nav}
@@ -135,7 +140,7 @@ ${corpo}
   <div>Gestão de locação por temporada · São Lourenço/MG</div>
   <div><a href="https://wa.me/5535988464111" target="_blank" rel="noopener">WhatsApp (35) 98846-4111</a> · <a href="https://instagram.com/stay22.gestao" target="_blank" rel="noopener">@stay22.gestao</a></div>
 </footer>
-<script src="/public/app.js" defer></script>
+<script src="/public/app.js?v=${VERSAO}" defer></script>
 </body></html>`;
 }
 

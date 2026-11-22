@@ -15,7 +15,7 @@ const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(express.urlencoded({ extended: false, limit: '200kb' }));
-app.use('/public', express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
+app.use('/public', express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
