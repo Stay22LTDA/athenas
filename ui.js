@@ -107,14 +107,14 @@ function options(lista, atual) {
 
 function layout({ titulo, usuario, corpo, aviso }) {
   const nav = usuario ? `
-    <nav class="topo">
-      <a href="/" class="marca"><img src="/public/logo-stay22-branca.png" alt="Stay22"></a>
-      <div class="menu">
+    <header class="topo"><div class="topo-in">
+      <a href="/" class="marca"><img src="/public/logo-stay22-branca.png" alt="Stay22"><span class="marca-txt">Painel de montagem</span></a>
+      <nav class="menu">
         ${usuario.papel === 'admin' ? '<a href="/">Unidades</a><a href="/proprietarios">Proprietários</a>' : '<a href="/">Minha unidade</a>'}
         <a href="/conta">Minha conta</a>
         <form method="post" action="/sair"><button class="link">Sair</button></form>
-      </div>
-    </nav>` : '';
+      </nav>
+    </div></header>` : '';
   return `<!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -130,7 +130,11 @@ ${nav}
 ${aviso ? `<div class="aviso">${esc(aviso)}</div>` : ''}
 ${corpo}
 </main>
-<footer>Stay22 · Gestão de locação por temporada · São Lourenço/MG</footer>
+<footer class="rodape">
+  <img src="/public/logo-stay22-marrom.png" alt="Stay22">
+  <div>Gestão de locação por temporada · São Lourenço/MG</div>
+  <div><a href="https://wa.me/5535988464111" target="_blank" rel="noopener">WhatsApp (35) 98846-4111</a> · <a href="https://instagram.com/stay22.gestao" target="_blank" rel="noopener">@stay22.gestao</a></div>
+</footer>
 <script src="/public/app.js" defer></script>
 </body></html>`;
 }

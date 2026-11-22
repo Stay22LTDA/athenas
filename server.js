@@ -209,18 +209,23 @@ app.get('/entrar', (req, res) => {
   const falha = req.query.erro ? '<p class="erro">E-mail ou senha incorretos.</p>' : '';
   const trava = req.query.trava ? '<p class="erro">Muitas tentativas. Aguarde 15 minutos e tente de novo.</p>' : '';
   pagina(req, res, 'Entrar', `
-  <section class="cartao estreito">
-    <img class="logo-login" src="/public/logo-stay22-marrom.png" alt="Stay22">
-    <h1>Painel de montagem</h1>
-    <p class="sub">Acompanhe a montagem da sua unidade, item por item.</p>
-    ${falha}${trava}
-    <form method="post" class="form">
-      <input type="hidden" name="volta" value="${esc(req.query.volta || '/')}">
-      <label>E-mail<input name="email" type="email" autocomplete="username" required></label>
-      <label>Senha<input name="senha" type="password" autocomplete="current-password" required></label>
-      <button>Entrar</button>
-    </form>
-    <p class="nota">Esqueceu a senha? Fale com a Stay22 pelo WhatsApp (35) 98846-4111.</p>
+  <section class="login">
+    <div class="login-foto">
+      <img src="/public/logo-stay22-branca.png" alt="Stay22" class="login-logo">
+      <p>Acompanhe a montagem da sua unidade, item por item: compras, entregas e instalações.</p>
+    </div>
+    <div class="login-form">
+      <h1>Painel de montagem</h1>
+      <p class="sub">Entre com o e-mail e a senha que a Stay22 enviou para você.</p>
+      ${falha}${trava}
+      <form method="post" class="form">
+        <input type="hidden" name="volta" value="${esc(req.query.volta || '/')}">
+        <label>E-mail<input name="email" type="email" autocomplete="username" required></label>
+        <label>Senha<input name="senha" type="password" autocomplete="current-password" required></label>
+        <button class="grande">Entrar</button>
+      </form>
+      <p class="nota">Esqueceu a senha? Fale com a Stay22 pelo WhatsApp (35) 98846-4111.</p>
+    </div>
   </section>`);
 });
 app.post('/entrar', (req, res) => {
@@ -493,7 +498,6 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     <div><span>Já comprado</span><strong>${moeda(r.pago)}</strong></div>
     <div><span>Saldo da verba</span><strong>${moeda(r.saldo)}</strong></div>
     <div><span>Itens comprados</span><strong>${r.comprados}/${r.total}</strong><div class="barra"><span style="width:${r.progresso}%"></span></div></div>
-    <div><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em></div>
   </section>`;
 
   const alertas = [];
@@ -617,10 +621,17 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   </section>` : '';
 
   pagina(req, res, `Unidade ${u.numero}`, `
-  <section class="cabecalho">
-    <div><p class="sobre">${esc(u.edificio)}</p><h1>Unidade ${esc(u.numero)}</h1>
-    <p class="sub">${prop ? esc(prop.nome) : 'Sem proprietário vinculado'}${u.area ? ' · ' + esc(u.area) : ''}${u.data_assinatura ? ' · contrato assinado em ' + data(u.data_assinatura) : ''} · prazo de ${u.prazo_dias} dias</p></div>
-    <div>${pill(u.status)}</div>
+  <section class="hero-unidade">
+    <div class="hero-txt">
+      ${/athenas/i.test(u.edificio) ? '<img src="/public/logo-athenas-branca.png" alt="Edifício Athenas" class="hero-ath">' : `<p class="sobre">${esc(u.edificio)}</p>`}
+      <h1>Unidade ${esc(u.numero)}</h1>
+      <p>${prop ? esc(prop.nome) : 'Sem proprietário vinculado'}${u.area ? ' · ' + esc(u.area) : ''}</p>
+      <p class="hero-mini">${u.data_assinatura ? 'Contrato assinado em ' + data(u.data_assinatura) + ' · ' : ''}prazo de ${u.prazo_dias} dias</p>
+    </div>
+    <div class="hero-lado">
+      ${pill(u.status)}
+      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em></div>
+    </div>
   </section>
   ${kpis}
   ${alertas.length ? `<section class="cartao alerta"><h2>Atenção</h2><ul class="lista-alertas">${alertas.map(a => `<li>${a}</li>`).join('')}</ul></section>` : ''}
