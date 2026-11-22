@@ -506,7 +506,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   const filtro = STATUS_ITEM.includes(req.query.status) ? req.query.status : null;
   const etapas = db.prepare('SELECT * FROM etapas WHERE unidade_id = ? ORDER BY ordem, id').all(u.id);
   const anexos = db.prepare('SELECT a.*, i.nome AS item_nome FROM anexos a LEFT JOIN itens i ON i.id = a.item_id WHERE a.unidade_id = ? ORDER BY a.id DESC').all(u.id);
-  const hist = db.prepare('SELECT h.*, us.nome AS quem, i.nome AS item_nome FROM historico h LEFT JOIN usuarios us ON us.id = h.usuario_id LEFT JOIN itens i ON i.id = h.item_id WHERE h.unidade_id = ? ORDER BY h.id DESC LIMIT 60').all(u.id);
+  const hist = db.prepare(`SELECT h.*, us.nome AS quem, i.nome AS item_nome FROM historico h LEFT JOIN usuarios us ON us.id = h.usuario_id LEFT JOIN itens i ON i.id = h.item_id WHERE h.unidade_id = ? ${admin ? '' : "AND h.acao NOT LIKE 'Prazo suspenso%' AND h.acao NOT LIKE 'Suspensão do prazo%' AND h.acao NOT LIKE 'Dados da unidade%' AND h.acao NOT LIKE 'Login do proprietário%'"} ORDER BY h.id DESC LIMIT 60`).all(u.id);
   const hoje = U.hoje();
   const susp = suspensoes(u);
   const totalSusp = diasUnidos(susp);
@@ -596,9 +596,9 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     ${admin ? `<form method="post" action="/u/${u.id}/etapas" class="inline novo"><input name="nome" placeholder="Nova etapa" required><input name="responsavel" placeholder="Responsável"><input type="date" name="prazo"><button class="pequeno">Adicionar etapa</button></form>` : ''}
   </section>`;
 
-  const prazo = `
+  const prazo = !admin ? '' : `
   <section class="cartao" id="prazo">
-    <h2>Prazo de entrega</h2>
+    <h2>Prazo de entrega <span class="mini">só a equipe vê este quadro</span></h2>
     <dl class="dados">
       <dt>Assinatura do contrato</dt><dd>${data(u.data_assinatura) || '—'}</dd>
       <dt>Prazo contratual</dt><dd>${u.prazo_dias} dias corridos (cl. 6.1)</dd>
@@ -666,11 +666,11 @@ app.get('/u/:id', exigirLogin, (req, res) => {
       ${/athenas/i.test(u.edificio) ? '<img src="/public/logo-athenas-branca.png" alt="Edifício Athenas" class="hero-ath">' : `<p class="sobre">${esc(u.edificio)}</p>`}
       <h1>Unidade ${esc(u.numero)}</h1>
       <p>${prop ? esc(prop.nome) : 'Sem proprietário vinculado'}${u.area ? ' · ' + esc(u.area) : ''}</p>
-      <p class="hero-mini">${u.data_assinatura ? 'Contrato assinado em ' + data(u.data_assinatura) + ' · ' : ''}prazo de ${u.prazo_dias} dias</p>
+      <p class="hero-mini">${u.data_assinatura ? 'Contrato assinado em ' + data(u.data_assinatura) : ''}${admin ? `${u.data_assinatura ? ' · ' : ''}prazo de ${u.prazo_dias} dias` : ''}</p>
     </div>
     <div class="hero-lado">
       ${pill(u.status)}
-      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em>${susp.length ? `<em class="hero-susp">inclui ${totalSusp} dia(s) de prazo suspenso (cl. 6.3)</em>` : ''}</div>
+      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em>${admin && susp.length ? `<em class="hero-susp">inclui ${totalSusp} dia(s) de prazo suspenso (cl. 6.3) · só a equipe vê</em>` : ''}</div>
     </div>
   </section>
   ${kpis}
