@@ -21,7 +21,7 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'same-origin',
-    'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; frame-ancestors 'none'",
+    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; frame-ancestors 'none'",
   });
   next();
 });
@@ -514,7 +514,8 @@ app.get('/u/:id', exigirLogin, (req, res) => {
         <span class="mini">${esc(i.categoria)}</span>
         <strong>${esc(i.nome)}</strong>
         <span>${esc(i.loja || '')} · ${moeda(i.valor_orcado)}</span>
-        ${i.oferta_ate ? `<span class="mini oferta">Oferta até ${data(i.oferta_ate)}</span>` : ''}
+        ${i.cupom ? `<span class="mini">Cupom <strong class="cupom-mini">${esc(i.cupom)}</strong></span>` : ''}
+        ${i.oferta_ate ? (i.oferta_ate < hoje ? `<span class="mini">Oferta venceu em ${data(i.oferta_ate)}</span>` : `<span class="mini oferta">Oferta até ${data(i.oferta_ate)}</span>`) : ''}
         <span class="mini">Enviado em ${data(i.link_enviado_em)}</span>
       </a>`).join('')}</div>
   </section>` : '';
@@ -789,7 +790,7 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
     <dt>Quantidade</dt><dd>${esc(it.qtd || '—')}</dd>
     <dt>Loja</dt><dd>${esc(it.loja || '—')}</dd>
     <dt>Valor orçado</dt><dd>${moeda(it.valor_orcado)}</dd>
-    ${it.oferta_ate ? `<dt>Oferta válida até</dt><dd class="oferta">${data(it.oferta_ate)}</dd>` : ''}
+    ${it.oferta_ate ? (it.oferta_ate < U.hoje() ? `<dt>Oferta</dt><dd>venceu em ${data(it.oferta_ate)}: confira o preço antes de comprar</dd>` : `<dt>Oferta válida até</dt><dd class="oferta">${data(it.oferta_ate)}</dd>`) : ''}
     ${it.cupom ? `<dt>Cupom</dt><dd><code>${esc(it.cupom)}</code></dd>` : ''}
     ${it.link_enviado_em ? `<dt>Enviado em</dt><dd>${data(it.link_enviado_em)}${it.status === 'Link enviado' ? ` · aprovar até ${data(pa)}` : ''}</dd>` : ''}
     ${it.valor_pago ? `<dt>Valor pago</dt><dd>${moeda(it.valor_pago)}${it.forma_pagamento ? ' · ' + esc(it.forma_pagamento) : ''}${it.parcelas_cartao ? ` em ${it.parcelas_cartao}x` : ''}</dd>` : ''}
