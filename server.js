@@ -21,7 +21,7 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'same-origin',
-    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; frame-ancestors 'none'",
+    'Content-Security-Policy': "default-src 'self'; media-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; frame-ancestors 'none'",
   });
   next();
 });
@@ -247,6 +247,7 @@ app.get('/entrar', (req, res) => {
         <label>Senha<input name="senha" type="password" autocomplete="current-password" required></label>
         <button class="grande">Entrar</button>
       </form>
+      <p class="nota"><a href="/como-usar">Como usar o painel (vídeo)</a></p>
       <p class="nota">Esqueceu a senha? Fale com a Stay22 pelo WhatsApp (35) 98846-4111.</p>
     </div>
   </section>`);
@@ -264,6 +265,17 @@ app.post('/entrar', (req, res) => {
   res.redirect(volta);
 });
 app.post('/sair', (req, res) => { res.clearCookie('s22', { path: '/' }); res.redirect('/entrar'); });
+
+// Vídeo "Como usar o painel" (aberto, sem login).
+app.get('/como-usar', (req, res) => {
+  pagina(req, res, 'Como usar o painel', `
+  <section class="cartao tutorial">
+    <h1>Como usar o painel</h1>
+    <p class="sub">Um passo a passo de pouco mais de um minuto: entrar, comprar os itens, registrar a compra e acompanhar a montagem.</p>
+    <video controls playsinline preload="metadata" poster="/public/tutorial-capa.jpg"><source src="/public/tutorial.mp4" type="video/mp4"></video>
+    <p><a class="botao" href="/entrar">Entrar no painel</a></p>
+  </section>`);
+});
 
 app.get('/saude', (req, res) => res.type('text').send('ok'));
 
@@ -368,7 +380,7 @@ app.get('/proprietarios', exigirLogin, exigirAdmin, (req, res) => {
 });
 
 function telaCredenciais(req, res, u, senha) {
-  const msg = `Olá, ${primeiroNome(u.nome)}! Tudo bem?\n\nCriei seu acesso ao painel de montagem da Stay22. Por lá você acompanha cada item da sua unidade: orçamentos, links de compra, entregas e instalações.\n\nAcesse: ${baseUrl(req)}/entrar\nLogin: ${u.email}\nSenha provisória: ${senha}\n\nNo primeiro acesso o painel pede para você criar uma senha sua.\n\nQualquer dúvida, estou à disposição.\nStay22`;
+  const msg = `Olá, ${primeiroNome(u.nome)}! Tudo bem?\n\nCriei seu acesso ao painel de montagem da Stay22. Por lá você acompanha cada item da sua unidade: orçamentos, links de compra, entregas e instalações.\n\nAcesse: ${baseUrl(req)}/entrar\nLogin: ${u.email}\nSenha provisória: ${senha}\n\nNo primeiro acesso o painel pede para você criar uma senha sua.\n\nVídeo de 1 minuto mostrando como usar: ${baseUrl(req)}/como-usar\n\nQualquer dúvida, estou à disposição.\nStay22`;
   const wa = `https://wa.me/${U.waNumero(u.whatsapp)}?text=${encodeURIComponent(msg)}`;
   pagina(req, res, 'Acesso criado', `
   <section class="cartao estreito">

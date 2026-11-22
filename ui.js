@@ -116,6 +116,7 @@ function layout({ titulo, usuario, corpo, aviso }) {
       <a href="/" class="marca"><img src="/public/logo-stay22-branca.png" alt="Stay22"><span class="marca-txt">Painel de montagem</span></a>
       <nav class="menu">
         ${usuario.papel === 'admin' ? '<a href="/">Unidades</a><a href="/proprietarios">Proprietários</a>' : '<a href="/">Minha unidade</a>'}
+        <a href="/como-usar">Como usar</a>
         <a href="/conta">Minha conta</a>
         <form method="post" action="/sair"><button class="link">Sair</button></form>
       </nav>

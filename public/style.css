@@ -250,3 +250,6 @@ section[id]{scroll-margin-top:12px}
 .previa{position:sticky;top:0;z-index:5;background:#21426A;color:#fff;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:14px}
 .previa a{color:#fff;font-weight:500;margin-left:6px}
 button:disabled,input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}
+
+.tutorial{max-width:520px;margin:20px auto;text-align:center}
+.tutorial video{width:100%;max-height:78vh;border-radius:14px;background:#000;margin:14px 0}
