@@ -140,7 +140,18 @@ function falhou(chave) {
 // Dias de suspensão (cl. 6.3). Uma suspensão sem fim conta até hoje.
 function suspensoes(u) { return db.prepare('SELECT * FROM suspensoes WHERE unidade_id = ? ORDER BY inicio, id').all(u.id); }
 function diasSuspensao(sp) { return Math.max(0, U.diasEntre(sp.inicio, sp.fim || U.hoje())); }
-function totalSuspenso(u) { return suspensoes(u).reduce((a, sp) => a + diasSuspensao(sp), 0); }
+// Soma os dias suspensos sem contar duas vezes os períodos que se sobrepõem.
+function diasUnidos(lista) {
+  const ints = lista.map(sp => [sp.inicio, sp.fim || U.hoje()]).filter(([a, b]) => b > a).sort((x, y) => (x[0] < y[0] ? -1 : 1));
+  let total = 0, ini = null, fim = null;
+  for (const [a, b] of ints) {
+    if (fim === null || a > fim) { if (fim !== null) total += U.diasEntre(ini, fim); ini = a; fim = b; }
+    else if (b > fim) fim = b;
+  }
+  if (fim !== null) total += U.diasEntre(ini, fim);
+  return total;
+}
+function totalSuspenso(u) { return diasUnidos(suspensoes(u)); }
 function entregaPrevista(u) { return u.data_assinatura ? U.addDias(u.data_assinatura, u.prazo_dias + totalSuspenso(u)) : null; }
 function prazoAprovacao(it) { return it.link_enviado_em ? U.addDiasUteis(U.diaDe(it.link_enviado_em), 3) : null; }
 
@@ -498,7 +509,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   const hist = db.prepare('SELECT h.*, us.nome AS quem, i.nome AS item_nome FROM historico h LEFT JOIN usuarios us ON us.id = h.usuario_id LEFT JOIN itens i ON i.id = h.item_id WHERE h.unidade_id = ? ORDER BY h.id DESC LIMIT 60').all(u.id);
   const hoje = U.hoje();
   const susp = suspensoes(u);
-  const totalSusp = susp.reduce((a, sp) => a + diasSuspensao(sp), 0);
+  const totalSusp = diasUnidos(susp);
 
   const kpis = `
   <section class="kpis">
@@ -591,7 +602,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     <dl class="dados">
       <dt>Assinatura do contrato</dt><dd>${data(u.data_assinatura) || '—'}</dd>
       <dt>Prazo contratual</dt><dd>${u.prazo_dias} dias corridos (cl. 6.1)</dd>
-      <dt>Dias suspensos</dt><dd>${totalSusp} dia(s) (cl. 6.3)</dd>
+      <dt>Dias suspensos</dt><dd>${totalSusp} dia(s) (cl. 6.3)${susp.length > 1 ? ' · períodos que se sobrepõem contam uma vez só' : ''}</dd>
       <dt>Entrega prevista</dt><dd><strong>${r.entrega ? data(r.entrega) : '—'}</strong></dd>
     </dl>
     ${susp.length ? `<ul class="historico" style="margin-top:12px">${susp.map(sp => `<li><div><strong>${esc(sp.motivo)}</strong></div><span class="mini">${data(sp.inicio)} a ${sp.fim ? data(sp.fim) : 'em aberto (contando até hoje)'} · ${diasSuspensao(sp)} dia(s)${sp.obs ? ' · ' + esc(sp.obs) : ''}</span>
