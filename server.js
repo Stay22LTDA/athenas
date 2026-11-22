@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const {
   db, DATA_DIR, segredo, ITENS_PADRAO, ETAPAS_PADRAO,
-  STATUS_ITEM, STATUS_INSTALACAO, STATUS_ETAPA, FORMAS_PAGAMENTO, TIPOS_ANEXO,
+  STATUS_ITEM, STATUS_INSTALACAO, STATUS_ETAPA, FORMAS_PAGAMENTO, TIPOS_ANEXO, MOTIVOS_SUSPENSAO,
 } = require('./db');
 const U = require('./ui');
 const { esc, moeda, data, pill, options, layout } = U;
@@ -137,7 +137,11 @@ function falhou(chave) {
 }
 
 // ---------- Cálculos ----------
-function entregaPrevista(u) { return u.data_assinatura ? U.addDias(u.data_assinatura, u.prazo_dias) : null; }
+// Dias de suspensão (cl. 6.3). Uma suspensão sem fim conta até hoje.
+function suspensoes(u) { return db.prepare('SELECT * FROM suspensoes WHERE unidade_id = ? ORDER BY inicio, id').all(u.id); }
+function diasSuspensao(sp) { return Math.max(0, U.diasEntre(sp.inicio, sp.fim || U.hoje())); }
+function totalSuspenso(u) { return suspensoes(u).reduce((a, sp) => a + diasSuspensao(sp), 0); }
+function entregaPrevista(u) { return u.data_assinatura ? U.addDias(u.data_assinatura, u.prazo_dias + totalSuspenso(u)) : null; }
 function prazoAprovacao(it) { return it.link_enviado_em ? U.addDiasUteis(U.diaDe(it.link_enviado_em), 3) : null; }
 
 function resumo(u) {
@@ -470,12 +474,14 @@ app.post('/u/:id/config', exigirLogin, exigirAdmin, (req, res) => {
   const u = unidadeComAcesso(req, req.params.id);
   if (!u) return erro(req, res, 404, 'Unidade não encontrada.');
   const d = lerUnidade(req.body);
+  const entregaAntes = entregaPrevista(u);
   db.prepare(`UPDATE unidades SET numero=?, edificio=?, proprietario_id=?, area=?, data_assinatura=?, prazo_dias=?, verba_estimada=?, status=?, endereco_entrega=?, obs_interna=? WHERE id=?`)
     .run(d.numero || u.numero, d.edificio, d.proprietario_id, d.area, d.data_assinatura, d.prazo_dias, d.verba_estimada, d.status, d.endereco_entrega, d.obs_interna, u.id);
   const mud = [];
   if (u.prazo_dias !== d.prazo_dias) mud.push(`prazo ${u.prazo_dias} → ${d.prazo_dias} dias`);
   if (u.data_assinatura !== d.data_assinatura) mud.push(`assinatura ${data(u.data_assinatura)} → ${data(d.data_assinatura)}`);
   if (u.verba_estimada !== d.verba_estimada) mud.push(`verba ${moeda(u.verba_estimada)} → ${moeda(d.verba_estimada)}`);
+  atualizarEtapasDeEntrega(db.prepare('SELECT * FROM unidades WHERE id = ?').get(u.id), entregaAntes);
   registrar(u.id, null, req.usuario.id, 'Dados da unidade alterados', mud.join('; ') || null);
   res.redirect('/u/' + u.id + '?msg=salvo#config');
 });
@@ -491,6 +497,8 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   const anexos = db.prepare('SELECT a.*, i.nome AS item_nome FROM anexos a LEFT JOIN itens i ON i.id = a.item_id WHERE a.unidade_id = ? ORDER BY a.id DESC').all(u.id);
   const hist = db.prepare('SELECT h.*, us.nome AS quem, i.nome AS item_nome FROM historico h LEFT JOIN usuarios us ON us.id = h.usuario_id LEFT JOIN itens i ON i.id = h.item_id WHERE h.unidade_id = ? ORDER BY h.id DESC LIMIT 60').all(u.id);
   const hoje = U.hoje();
+  const susp = suspensoes(u);
+  const totalSusp = susp.reduce((a, sp) => a + diasSuspensao(sp), 0);
 
   const kpis = `
   <section class="kpis">
@@ -577,6 +585,27 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     ${admin ? `<form method="post" action="/u/${u.id}/etapas" class="inline novo"><input name="nome" placeholder="Nova etapa" required><input name="responsavel" placeholder="Responsável"><input type="date" name="prazo"><button class="pequeno">Adicionar etapa</button></form>` : ''}
   </section>`;
 
+  const prazo = `
+  <section class="cartao" id="prazo">
+    <h2>Prazo de entrega</h2>
+    <dl class="dados">
+      <dt>Assinatura do contrato</dt><dd>${data(u.data_assinatura) || '—'}</dd>
+      <dt>Prazo contratual</dt><dd>${u.prazo_dias} dias corridos (cl. 6.1)</dd>
+      <dt>Dias suspensos</dt><dd>${totalSusp} dia(s) (cl. 6.3)</dd>
+      <dt>Entrega prevista</dt><dd><strong>${r.entrega ? data(r.entrega) : '—'}</strong></dd>
+    </dl>
+    ${susp.length ? `<ul class="historico" style="margin-top:12px">${susp.map(sp => `<li><div><strong>${esc(sp.motivo)}</strong></div><span class="mini">${data(sp.inicio)} a ${sp.fim ? data(sp.fim) : 'em aberto (contando até hoje)'} · ${diasSuspensao(sp)} dia(s)${sp.obs ? ' · ' + esc(sp.obs) : ''}</span>
+      ${admin ? `<form method="post" action="/suspensoes/${sp.id}" class="inline" style="margin-top:6px"><label class="mini">Fim <input type="date" name="fim" value="${esc(sp.fim || '')}"></label><button class="pequeno">Salvar</button><label class="mini check"><input type="checkbox" name="excluir"> excluir</label></form>` : ''}</li>`).join('')}</ul>` : ''}
+    ${admin ? `<details class="opcional" style="margin-top:14px"><summary>Registrar suspensão do prazo</summary>
+      <form method="post" action="/u/${u.id}/suspensoes" class="form grade2" style="margin-top:10px">
+        <label class="largo">Motivo (cl. 6.3)<select name="motivo" required>${options(MOTIVOS_SUSPENSAO, null)}</select></label>
+        <label>Início da suspensão<input type="date" name="inicio" required></label>
+        <label>Fim (deixe vazio se ainda não terminou)<input type="date" name="fim"></label>
+        <label class="largo">Observação<input name="obs" placeholder="Ex.: chaves deveriam ser entregues até 11/11 e foram entregues em 16/11"></label>
+        <button>Registrar</button>
+      </form></details>` : ''}
+  </section>`;
+
   const docs = `
   <section class="cartao" id="documentos">
     <h2>Notas fiscais e comprovantes <span class="mini">${anexos.length} arquivo(s)</span></h2>
@@ -630,7 +659,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     </div>
     <div class="hero-lado">
       ${pill(u.status)}
-      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em></div>
+      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em>${susp.length ? `<em class="hero-susp">inclui ${totalSusp} dia(s) de prazo suspenso (cl. 6.3)</em>` : ''}</div>
     </div>
   </section>
   ${kpis}
@@ -643,6 +672,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   </section>
   ${parcelas}
   ${cronograma}
+  ${prazo}
   ${docs}
   ${adminExtra}
   ${historico}`);
@@ -681,6 +711,42 @@ app.post('/u/:id/enviar-lote', exigirLogin, exigirAdmin, (req, res) => {
     '', 'No painel estão os links das lojas, os cupons e o endereço prontos para copiar, e é por lá que você registra cada compra:', `${baseUrl(req)}/u/${u.id}`,
     '', 'Qualquer dúvida, estou à disposição.', 'Stay22');
   res.redirect(`https://wa.me/${U.waNumero(prop.whatsapp)}?text=${encodeURIComponent(l.join('\n'))}`);
+});
+
+// Ajusta os prazos das etapas presas à entrega (vistoria e prestação de contas) quando a entrega muda.
+function atualizarEtapasDeEntrega(u, antes) {
+  const depois = entregaPrevista(u);
+  if (!antes || !depois || antes === depois) return;
+  db.prepare("UPDATE etapas SET prazo = ? WHERE unidade_id = ? AND prazo = ? AND status <> 'Concluída'").run(depois, u.id, antes);
+}
+app.post('/u/:id/suspensoes', exigirLogin, exigirAdmin, (req, res) => {
+  const u = unidadeComAcesso(req, req.params.id);
+  if (!u) return erro(req, res, 404, 'Unidade não encontrada.');
+  const inicio = U.lerData(req.body.inicio), fim = U.lerData(req.body.fim);
+  if (!inicio || !MOTIVOS_SUSPENSAO.includes(req.body.motivo) || (fim && fim < inicio)) return erro(req, res, 400, 'Confira o motivo e as datas (o fim não pode ser antes do início).');
+  const antes = entregaPrevista(u);
+  db.prepare('INSERT INTO suspensoes (unidade_id, inicio, fim, motivo, obs, criado_em) VALUES (?,?,?,?,?,?)').run(u.id, inicio, fim, req.body.motivo, req.body.obs || null, U.agora());
+  atualizarEtapasDeEntrega(u, antes);
+  registrar(u.id, null, req.usuario.id, 'Prazo suspenso (cl. 6.3)', `${req.body.motivo} · ${data(inicio)} a ${fim ? data(fim) : 'em aberto'} · entrega ${data(antes)} → ${data(entregaPrevista(u))}`);
+  res.redirect('/u/' + u.id + '?msg=salvo#prazo');
+});
+app.post('/suspensoes/:id', exigirLogin, exigirAdmin, (req, res) => {
+  const sp = db.prepare('SELECT * FROM suspensoes WHERE id = ?').get(Number(req.params.id));
+  if (!sp) return erro(req, res, 404, 'Suspensão não encontrada.');
+  const u = unidadeComAcesso(req, sp.unidade_id);
+  const antes = entregaPrevista(u);
+  if (req.body.excluir) {
+    db.prepare('DELETE FROM suspensoes WHERE id = ?').run(sp.id);
+    atualizarEtapasDeEntrega(u, antes);
+    registrar(u.id, null, req.usuario.id, 'Suspensão do prazo excluída', `${sp.motivo} · entrega ${data(antes)} → ${data(entregaPrevista(u))}`);
+  } else {
+    const fim = U.lerData(req.body.fim);
+    if (fim && fim < sp.inicio) return erro(req, res, 400, 'O fim não pode ser antes do início.');
+    db.prepare('UPDATE suspensoes SET fim = ? WHERE id = ?').run(fim, sp.id);
+    atualizarEtapasDeEntrega(u, antes);
+    registrar(u.id, null, req.usuario.id, 'Suspensão do prazo atualizada', `${sp.motivo} · fim ${fim ? data(fim) : 'em aberto'} · entrega ${data(antes)} → ${data(entregaPrevista(u))}`);
+  }
+  res.redirect('/u/' + u.id + '?msg=salvo#prazo');
 });
 
 app.post('/u/:id/itens', exigirLogin, exigirAdmin, (req, res) => {

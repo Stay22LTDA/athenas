@@ -237,3 +237,5 @@ details.opcional .form{margin-top:10px}
 .lote input{margin-top:4px}
 
 .cupom-mini{background:#FBF1D2;color:#6E5410;padding:0 6px;border-radius:5px;letter-spacing:.04em;font-weight:500}
+
+.hero-entrega .hero-susp{display:block;font-size:12px;color:var(--gold-soft);opacity:1;margin-top:2px}

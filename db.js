@@ -106,6 +106,15 @@ CREATE TABLE IF NOT EXISTS historico (
   detalhes TEXT,
   criado_em TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS suspensoes (
+  id INTEGER PRIMARY KEY,
+  unidade_id INTEGER NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
+  inicio TEXT NOT NULL,
+  fim TEXT,
+  motivo TEXT NOT NULL,
+  obs TEXT,
+  criado_em TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_itens_unidade ON itens(unidade_id);
 CREATE INDEX IF NOT EXISTS idx_hist_unidade ON historico(unidade_id, id);
 `);
@@ -193,10 +202,19 @@ const ETAPAS_PADRAO = [
 const STATUS_ITEM = ['A orçar', 'Orçado', 'Link enviado', 'Revisar', 'Comprado', 'Entregue', 'Concluído', 'Cancelado'];
 const STATUS_INSTALACAO = ['Não precisa', 'Pendente', 'Agendada', 'Concluída'];
 const STATUS_ETAPA = ['Pendente', 'Em andamento', 'Concluída', 'Bloqueada'];
+// Hipóteses de suspensão do prazo de implantação (cl. 6.3 do Contrato de Implantação).
+const MOTIVOS_SUSPENSAO = [
+  'a) Atraso do proprietário em pagamento',
+  'b) Atraso na entrega das chaves, do acesso ou de autorizações do condomínio',
+  'c) Atraso, vício ou falha da Melhor Móveis',
+  'd) Alteração de escopo pedida pelo proprietário',
+  'e) Restrição do condomínio, da construtora ou do Poder Público',
+  'f) Caso fortuito ou força maior',
+];
 const FORMAS_PAGAMENTO = ['PIX', 'Cartão à vista', 'Cartão parcelado', 'Boleto', 'Transferência', 'Outro'];
 const TIPOS_ANEXO = ['Nota fiscal', 'Comprovante de pagamento', 'Foto', 'Orçamento', 'Outro'];
 
 module.exports = {
   db, DATA_DIR, segredo, ITENS_PADRAO, ETAPAS_PADRAO,
-  STATUS_ITEM, STATUS_INSTALACAO, STATUS_ETAPA, FORMAS_PAGAMENTO, TIPOS_ANEXO,
+  STATUS_ITEM, STATUS_INSTALACAO, STATUS_ETAPA, FORMAS_PAGAMENTO, TIPOS_ANEXO, MOTIVOS_SUSPENSAO,
 };
