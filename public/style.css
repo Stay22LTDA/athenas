@@ -246,3 +246,7 @@ details.opcional .form{margin-top:10px}
 .hero-link{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--gold-soft);text-decoration:underline}
 html{scroll-behavior:smooth}
 section[id]{scroll-margin-top:12px}
+
+.previa{position:sticky;top:0;z-index:5;background:#21426A;color:#fff;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:14px}
+.previa a{color:#fff;font-weight:500;margin-left:6px}
+button:disabled,input:disabled,select:disabled,textarea:disabled{opacity:.55;cursor:not-allowed}

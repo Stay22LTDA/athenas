@@ -186,6 +186,14 @@ function resumo(u) {
   return r;
 }
 
+// Pré-visualização "como o proprietário vê": a equipe navega sem poder gravar nada.
+const ehPrevia = req => ehAdmin(req) && req.query.visao === 'proprietario';
+function previa(html, voltar) {
+  html = html.replace(/href="\/(itens|u)\/(\d+)(#[^"]*)?"/g, (m, t, id, hash) => `href="/${t}/${id}?visao=proprietario${hash || ''}"`);
+  html = html.replace(/<button(?![^>]*class="link")/g, '<button disabled title="Pré-visualização: nada é gravado"');
+  html = html.replace(/<(input|select|textarea)(?![^>]*type="hidden")/g, '<$1 disabled');
+  return `<div class="previa">Você está vendo esta página <strong>como o proprietário vê</strong>. Nada pode ser gravado aqui. <a href="${voltar}">Voltar à visão da equipe</a></div>` + html;
+}
 function baseUrl(req) { return process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`; }
 function primeiroNome(n) { return String(n || '').trim().split(/\s+/)[0] || ''; }
 
@@ -500,7 +508,8 @@ app.post('/u/:id/config', exigirLogin, exigirAdmin, (req, res) => {
 app.get('/u/:id', exigirLogin, (req, res) => {
   const u = unidadeComAcesso(req, req.params.id);
   if (!u) return erro(req, res, 404, 'Unidade não encontrada.');
-  const admin = ehAdmin(req);
+  const verPrevia = ehPrevia(req);
+  const admin = ehAdmin(req) && !verPrevia;
   const r = resumo(u);
   const prop = u.proprietario_id ? db.prepare('SELECT * FROM usuarios WHERE id = ?').get(u.proprietario_id) : null;
   const filtro = STATUS_ITEM.includes(req.query.status) ? req.query.status : null;
@@ -660,7 +669,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     </details>
   </section>` : '';
 
-  pagina(req, res, `Unidade ${u.numero}`, `
+  const corpoUnidade = `
   <section class="hero-unidade">
     <div class="hero-txt">
       ${/athenas/i.test(u.edificio) ? '<img src="/public/logo-athenas-branca.png" alt="Edifício Athenas" class="hero-ath">' : `<p class="sobre">${esc(u.edificio)}</p>`}
@@ -670,7 +679,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     </div>
     <div class="hero-lado">
       ${pill(u.status)}
-      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em>${admin && susp.length ? `<em class="hero-susp">inclui ${totalSusp} dia(s) de prazo suspenso (cl. 6.3) · só a equipe vê</em>` : ''}${admin ? '<a class="hero-link" href="#prazo">Ajustar prazo</a>' : ''}</div>
+      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em>${admin && susp.length ? `<em class="hero-susp">inclui ${totalSusp} dia(s) de prazo suspenso (cl. 6.3) · só a equipe vê</em>` : ''}${admin ? `<a class="hero-link" href="#prazo">Ajustar prazo</a> · <a class="hero-link" href="/u/${u.id}?visao=proprietario">Ver como o proprietário</a>` : ''}</div>
     </div>
   </section>
   ${kpis}
@@ -689,7 +698,8 @@ app.get('/u/:id', exigirLogin, (req, res) => {
   ${prazo}
   ${docs}
   ${adminExtra}
-  ${historico}`);
+  ${historico}`;
+  pagina(req, res, `Unidade ${u.numero}`, verPrevia ? previa(corpoUnidade, `/u/${u.id}`) : corpoUnidade);
 });
 
 app.post('/u/:id/excluir', exigirLogin, exigirAdmin, (req, res) => {
@@ -867,7 +877,8 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
   const x = itemComAcesso(req, req.params.id);
   if (!x) return erro(req, res, 404, 'Item não encontrado.');
   const { it, u } = x;
-  const admin = ehAdmin(req);
+  const verPrevia = ehPrevia(req);
+  const admin = ehAdmin(req) && !verPrevia;
   const prop = u.proprietario_id ? db.prepare('SELECT * FROM usuarios WHERE id = ?').get(u.proprietario_id) : null;
   const anexos = db.prepare('SELECT * FROM anexos WHERE item_id = ? ORDER BY id DESC').all(it.id);
   const hist = db.prepare('SELECT h.*, us.nome AS quem FROM historico h LEFT JOIN usuarios us ON us.id = h.usuario_id WHERE h.item_id = ? ORDER BY h.id DESC').all(it.id);
@@ -995,13 +1006,14 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
     <ul class="historico">${hist.map(h => `<li><span class="mini">${U.dataHora(h.criado_em)} · ${esc(h.quem || 'Sistema')}</span><div>${esc(h.acao)}${h.detalhes ? `<span class="mini"> — ${esc(h.detalhes)}</span>` : ''}</div></li>`).join('') || '<li class="mini">Sem registros.</li>'}</ul>
   </section>`;
 
-  pagina(req, res, it.nome, `
-  <p class="trilha"><a href="/u/${u.id}">← Unidade ${esc(u.numero)}</a></p>
+  const corpoItem = `
+  <p class="trilha"><a href="/u/${u.id}">← Unidade ${esc(u.numero)}</a>${admin ? ` · <a href="/itens/${it.id}?visao=proprietario">Ver como o proprietário</a>` : ''}</p>
   <section class="cabecalho"><div><p class="sobre">${esc(it.categoria)}</p><h1>${esc(it.nome)}</h1></div></section>
   <div class="duas-colunas">
     <div>${compra}${edicao}${posCompra}</div>
     <div><section class="cartao">${detalhes}</section>${anexosHtml}${histHtml}</div>
-  </div>`);
+  </div>`;
+  pagina(req, res, it.nome, verPrevia ? previa(corpoItem, `/itens/${it.id}`) : corpoItem);
 });
 
 app.post('/itens/:id', exigirLogin, exigirAdmin, (req, res) => {
