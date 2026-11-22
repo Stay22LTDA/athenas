@@ -560,7 +560,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
       </a>`).join('')}</div>`).join('');
 
   const parcelas = `
-  <section class="cartao">
+  <section class="cartao" id="pacote">
     <h2>Pacote Stay22 <span class="mini">${moeda(r.pacoteRecebido)} pagos de ${moeda(r.pacoteTotal)}</span></h2>
     <div class="tabela-rolagem"><table class="tabela"><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Situação</th>${admin ? '<th></th>' : ''}</tr></thead><tbody>
     ${r.parcelas.map(p => {
@@ -670,10 +670,13 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     </div>
     <div class="hero-lado">
       ${pill(u.status)}
-      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em>${admin && susp.length ? `<em class="hero-susp">inclui ${totalSusp} dia(s) de prazo suspenso (cl. 6.3) · só a equipe vê</em>` : ''}</div>
+      <div class="hero-entrega"><span>Entrega prevista</span><strong>${r.entrega ? data(r.entrega) : '—'}</strong><em>${r.diasRestantes === null ? '' : r.diasRestantes >= 0 ? `faltam ${r.diasRestantes} dias` : `${Math.abs(r.diasRestantes)} dias de atraso`}</em>${admin && susp.length ? `<em class="hero-susp">inclui ${totalSusp} dia(s) de prazo suspenso (cl. 6.3) · só a equipe vê</em>` : ''}${admin ? '<a class="hero-link" href="#prazo">Ajustar prazo</a>' : ''}</div>
     </div>
   </section>
   ${kpis}
+  <nav class="atalhos">
+    <a href="#itens">Itens</a>${admin ? '<a href="#lote">Enviar vários</a>' : ''}<a href="#pacote">Pacote Stay22</a><a href="#cronograma">Cronograma</a>${admin ? '<a href="#prazo">Prazo de entrega</a>' : ''}<a href="#documentos">Notas e comprovantes</a>${admin ? '<a href="#novo-item">Adicionar item</a><a href="#config">Dados da unidade</a>' : ''}<a href="#historico">Histórico</a>
+  </nav>
   ${alertas.length ? `<section class="cartao alerta"><h2>Atenção</h2><ul class="lista-alertas">${alertas.map(a => `<li>${a}</li>`).join('')}</ul></section>` : ''}
   ${aguardando}
   <section class="cartao" id="itens">
