@@ -14,6 +14,14 @@ const { esc, moeda, data, pill, options, layout } = U;
 const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+// Endereço oficial: quem abrir o endereço antigo do Railway é levado ao domínio da Stay22.
+app.use((req, res, next) => {
+  const oficial = process.env.PUBLIC_URL;
+  if (oficial && req.path !== '/saude' && /\.up\.railway\.app$/i.test(req.hostname) && ['GET', 'HEAD'].includes(req.method)) {
+    return res.redirect(301, oficial.replace(/\/$/, '') + req.originalUrl);
+  }
+  next();
+});
 app.use(express.urlencoded({ extended: false, limit: '200kb' }));
 app.use('/public', express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 app.use((req, res, next) => {
