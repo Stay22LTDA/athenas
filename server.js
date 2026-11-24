@@ -411,6 +411,7 @@ app.post('/proprietarios', exigirLogin, exigirAdmin, (req, res) => {
 app.get('/proprietarios/:id', exigirLogin, exigirAdmin, (req, res) => {
   const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(req.params.id));
   if (!u) return erro(req, res, 404, 'Acesso não encontrado.');
+  const unidadesDele = db.prepare('SELECT numero FROM unidades WHERE proprietario_id = ?').all(u.id);
   pagina(req, res, 'Editar acesso', `
   <p class="trilha"><a href="/proprietarios">← Proprietários</a></p>
   <section class="cartao estreito-esq">
@@ -423,7 +424,25 @@ app.get('/proprietarios/:id', exigirLogin, exigirAdmin, (req, res) => {
       <label>WhatsApp (com DDD)<input name="whatsapp" value="${esc(u.whatsapp || '')}"></label>
       <button>Salvar</button>
     </form>
+    ${u.id === req.usuario.id ? '' : `<details class="perigo"><summary>Excluir este acesso</summary>
+      ${unidadesDele.length ? `<p class="mini">Não dá para excluir: ${esc(u.nome)} está vinculado à(s) unidade(s) ${esc(unidadesDele.map(x => x.numero).join(', '))}. Troque o proprietário dessas unidades em "Dados da unidade" ou use "Desativar" na lista.</p>` : `
+      <p class="mini">Remove o cadastro e o login. O histórico das unidades continua guardado.</p>
+      <form method="post" action="/proprietarios/${u.id}/excluir" class="inline"><label class="check"><input type="checkbox" name="confirmo" required> Confirmo a exclusão de ${esc(u.nome)}</label><button class="vermelho pequeno">Excluir</button></form>`}
+    </details>`}
   </section>`);
+});
+app.post('/proprietarios/:id/excluir', exigirLogin, exigirAdmin, (req, res) => {
+  const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(req.params.id));
+  if (!u || u.id === req.usuario.id || !req.body.confirmo) return res.redirect('/proprietarios');
+  if (db.prepare('SELECT 1 FROM unidades WHERE proprietario_id = ?').get(u.id)) return erro(req, res, 400, 'Este proprietário está vinculado a uma unidade. Troque o proprietário da unidade antes de excluir.');
+  db.exec('BEGIN');
+  try {
+    db.prepare('UPDATE anexos SET enviado_por = NULL WHERE enviado_por = ?').run(u.id);
+    db.prepare('DELETE FROM usuarios WHERE id = ?').run(u.id);
+    db.exec('COMMIT');
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
+  console.log(`Acesso ${u.id} (${u.email}) excluído por usuário ${req.usuario.id}`);
+  res.redirect('/proprietarios?msg=excluido');
 });
 app.post('/proprietarios/:id/editar', exigirLogin, exigirAdmin, (req, res) => {
   const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(req.params.id));
