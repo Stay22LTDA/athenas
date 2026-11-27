@@ -768,10 +768,11 @@ app.post('/u/:id/enviar-lote', exigirLogin, exigirAdmin, (req, res) => {
     registrar(u.id, it.id, req.usuario.id, it.link_enviado_em ? 'Link reenviado ao proprietário (lote)' : 'Link enviado ao proprietário (lote)', `${it.loja || ''} ${moeda(it.valor_orcado)}`.trim());
     l.push(`${n + 1}. *${it.nome}*${it.qtd && it.qtd !== '1' ? ` (${it.qtd})` : ''}`);
     l.push(`   ${[it.loja, moeda(it.valor_orcado)].filter(Boolean).join(' · ')}${it.cupom ? ` · cupom *${it.cupom}*` : ''}${it.oferta_ate ? ` · oferta até ${data(it.oferta_ate)}` : ''}`);
+    if (it.link && /^https?:\/\//i.test(it.link)) l.push(`   Comprar: ${U.limparLink(it.link)}`);
   });
   const total = itens.reduce((a, i) => a + (Number(i.valor_orcado) || 0), 0);
   l.push('', `Total orçado: ${moeda(total)}`, '', `Entrega: ${enderecoEntrega(u)}`, 'Nota fiscal no seu nome e CPF.',
-    '', 'No painel estão os links das lojas, os cupons e o endereço prontos para copiar, e é por lá que você registra cada compra:', `${baseUrl(req)}/u/${u.id}`,
+    '', 'Depois de comprar, registre cada compra e anexe o comprovante no painel:', `${baseUrl(req)}/u/${u.id}`,
     '', 'Qualquer dúvida, estou à disposição.', 'Stay22');
   res.redirect(`https://wa.me/${U.waNumero(prop.whatsapp)}?text=${encodeURIComponent(l.join('\n'))}`);
 });
@@ -906,8 +907,9 @@ function mensagemWhatsApp(req, it, u, prop) {
   if (it.oferta_ate) linhas.push(`Preço promocional válido até ${data(it.oferta_ate)}`);
   if (it.cupom) linhas.push(`Cupom de desconto: *${it.cupom}*`);
   if (it.dica_compra) linhas.push(`Dica: ${it.dica_compra}`);
+  if (it.link && /^https?:\/\//i.test(it.link)) linhas.push('', 'Link para compra:', U.limparLink(it.link));
   linhas.push('', `Entrega: ${enderecoEntrega(u)}`, 'Nota fiscal no seu nome e CPF.',
-    '', 'No painel estão o link da loja, o cupom e o endereço prontos para copiar, e é por lá que você registra a compra:', `${baseUrl(req)}/itens/${it.id}`,
+    '', 'Depois de comprar, registre a compra e anexe o comprovante no painel:', `${baseUrl(req)}/itens/${it.id}`,
     '', 'Qualquer dúvida, estou à disposição.', 'Stay22');
   return linhas.join('\n');
 }
