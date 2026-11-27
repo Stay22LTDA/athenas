@@ -126,6 +126,7 @@ function garantirColuna(tabela, coluna, tipo) {
 }
 garantirColuna('itens', 'cupom', 'TEXT');
 garantirColuna('itens', 'dica_compra', 'TEXT');
+garantirColuna('itens', 'voltagem', 'TEXT');
 
 // Segredo das sessões: gerado uma vez e guardado no próprio banco.
 function segredo() {

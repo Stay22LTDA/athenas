@@ -599,7 +599,7 @@ app.get('/u/:id', exigirLogin, (req, res) => {
     <h3>${esc(c)}</h3>
     <div class="itens">${visiveis.filter(i => i.categoria === c).map(i => `
       <a class="item ${i.status === 'Cancelado' ? 'cancelado' : ''}" href="/itens/${i.id}">
-        <span class="nome">${esc(i.nome)}${i.qtd && i.qtd !== '1' ? ` <em>× ${esc(i.qtd)}</em>` : ''}</span>
+        <span class="nome">${esc(i.nome)}${i.qtd && i.qtd !== '1' ? ` <em>× ${esc(i.qtd)}</em>` : ''}${i.voltagem ? ` <em>· ${esc(i.voltagem)}</em>` : ''}</span>
         <span class="st">${pill(i.status)}</span>
         <span class="val"><small>Orçado</small>${moeda(i.valor_orcado)}</span>
         <span class="val"><small>Pago</small>${moeda(i.valor_pago)}</span>
@@ -767,7 +767,7 @@ app.post('/u/:id/enviar-lote', exigirLogin, exigirAdmin, (req, res) => {
     salvarItem(it, novo);
     registrar(u.id, it.id, req.usuario.id, it.link_enviado_em ? 'Link reenviado ao proprietário (lote)' : 'Link enviado ao proprietário (lote)', `${it.loja || ''} ${moeda(it.valor_orcado)}`.trim());
     l.push(`${n + 1}. *${it.nome}*${it.qtd && it.qtd !== '1' ? ` (${it.qtd})` : ''}`);
-    l.push(`   ${[it.loja, moeda(it.valor_orcado)].filter(Boolean).join(' · ')}${it.cupom ? ` · cupom *${it.cupom}*` : ''}${it.oferta_ate ? ` · oferta até ${data(it.oferta_ate)}` : ''}`);
+    l.push(`   ${[it.voltagem ? `*${it.voltagem}*` : null, it.loja, moeda(it.valor_orcado)].filter(Boolean).join(' · ')}${it.cupom ? ` · cupom *${it.cupom}*` : ''}${it.oferta_ate ? ` · oferta até ${data(it.oferta_ate)}` : ''}`);
     if (it.link && /^https?:\/\//i.test(it.link)) l.push(`   Comprar: ${U.limparLink(it.link)}`);
   });
   const total = itens.reduce((a, i) => a + (Number(i.valor_orcado) || 0), 0);
@@ -857,8 +857,9 @@ app.post('/parcelas/:id', exigirLogin, exigirAdmin, (req, res) => {
 });
 
 // ---------- Item ----------
+const VOLTAGENS = ['110V', '220V', 'Bivolt'];
 const CAMPOS_ITEM = {
-  categoria: 'Categoria', nome: 'Item', qtd: 'Quantidade', status: 'Status', valor_orcado: 'Valor orçado', valor_pago: 'Valor pago',
+  categoria: 'Categoria', nome: 'Item', qtd: 'Quantidade', voltagem: 'Voltagem', status: 'Status', valor_orcado: 'Valor orçado', valor_pago: 'Valor pago',
   loja: 'Loja', link: 'Link', oferta_ate: 'Oferta até', cupom: 'Cupom', dica_compra: 'Dica de compra', forma_pagamento: 'Forma de pagamento', parcelas_cartao: 'Parcelas no cartão',
   numero_pedido: 'Nº do pedido', link_enviado_em: 'Link enviado em', comprado_em: 'Comprado em', previsao_entrega: 'Previsão de entrega',
   entregue_em: 'Entregue em', instalacao: 'Instalação', instalador: 'Quem instala', instalacao_data: 'Data da instalação',
@@ -902,6 +903,7 @@ function mensagemWhatsApp(req, it, u, prop) {
     `Separei mais um item para a montagem da unidade ${u.numero}:`, '',
     `*${it.nome}*${it.qtd && it.qtd !== '1' ? ` (${it.qtd})` : ''}`,
   ];
+  if (it.voltagem) linhas.push(`Voltagem: *${it.voltagem}*`);
   if (it.loja) linhas.push(`Loja: ${it.loja}`);
   if (it.valor_orcado) linhas.push(`Valor: ${moeda(it.valor_orcado)}`);
   if (it.oferta_ate) linhas.push(`Preço promocional válido até ${data(it.oferta_ate)}`);
@@ -931,6 +933,7 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
   <dl class="dados">
     <dt>Status</dt><dd>${pill(it.status)}</dd>
     <dt>Quantidade</dt><dd>${esc(it.qtd || '—')}</dd>
+    ${it.voltagem ? `<dt>Voltagem</dt><dd><strong>${esc(it.voltagem)}</strong></dd>` : ''}
     <dt>Loja</dt><dd>${esc(it.loja || '—')}</dd>
     <dt>Valor orçado</dt><dd>${moeda(it.valor_orcado)}</dd>
     ${it.oferta_ate ? (it.oferta_ate < U.hoje() ? `<dt>Oferta</dt><dd>venceu em ${data(it.oferta_ate)}: confira o preço antes de comprar</dd>` : `<dt>Oferta válida até</dt><dd class="oferta">${data(it.oferta_ate)}</dd>`) : ''}
@@ -953,6 +956,7 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
       ${it.cupom ? `<div class="copiavel"><span class="rotulo">Cupom de desconto</span><code class="cupom">${esc(it.cupom)}</code><button type="button" class="copiar pequeno claro" data-copiar="${esc(it.cupom)}">Copiar cupom</button></div>` : ''}
       <div class="copiavel"><span class="rotulo">Destinatário</span><span>${esc(prop ? prop.nome : '')}</span>${prop ? `<button type="button" class="copiar pequeno claro" data-copiar="${esc(prop.nome)}">Copiar</button>` : ''}</div>
       <div class="copiavel"><span class="rotulo">Endereço de entrega</span><span>${esc(endereco)}</span><button type="button" class="copiar pequeno claro" data-copiar="${esc(endereco)}">Copiar</button></div>
+      ${it.voltagem ? `<div class="dica"><strong>Atenção:</strong> escolha a voltagem <strong>${esc(it.voltagem)}</strong> na loja.</div>` : ''}
       ${it.dica_compra ? `<div class="dica"><strong>Dica da Stay22:</strong> ${esc(it.dica_compra)}</div>` : ''}
     </div>
     <div class="instrucoes">
@@ -1007,6 +1011,7 @@ app.get('/itens/:id', exigirLogin, (req, res) => {
       <label>Categoria<input name="categoria" value="${esc(it.categoria)}" required></label>
       <label>Item<input name="nome" value="${esc(it.nome)}" required></label>
       <label>Quantidade<input name="qtd" value="${esc(it.qtd || '')}"></label>
+      <label>Voltagem<select name="voltagem"><option value="">— (não se aplica)</option>${options(VOLTAGENS, it.voltagem)}</select></label>
       <label>Status<select name="status">${options(STATUS_ITEM, it.status)}</select></label>
       <label>Loja<input name="loja" value="${esc(it.loja || '')}"></label>
       <label>Valor orçado (R$)<input name="valor_orcado" value="${it.valor_orcado ? esc(String(it.valor_orcado).replace('.', ',')) : ''}"></label>
@@ -1065,6 +1070,7 @@ app.post('/itens/:id', exigirLogin, exigirAdmin, (req, res) => {
   const enviadoDia = U.lerData(b.link_enviado_em);
   const novo = {
     categoria: (b.categoria || it.categoria).trim(), nome: (b.nome || it.nome).trim(), qtd: b.qtd || null,
+    voltagem: VOLTAGENS.includes(b.voltagem) ? b.voltagem : null,
     status: STATUS_ITEM.includes(b.status) ? b.status : it.status,
     loja: b.loja || null, valor_orcado: U.lerMoeda(b.valor_orcado), link: U.limparLink(b.link), oferta_ate: U.lerData(b.oferta_ate), cupom: (b.cupom || '').trim() || null, dica_compra: (b.dica_compra || '').trim() || null,
     link_enviado_em: enviadoDia ? (U.diaDe(it.link_enviado_em) === enviadoDia ? it.link_enviado_em : enviadoDia + 'T15:00:00.000Z') : null,
@@ -1179,7 +1185,7 @@ app.get('/u/:id/exportar.csv', exigirLogin, exigirAdmin, (req, res) => {
   const u = unidadeComAcesso(req, req.params.id);
   if (!u) return erro(req, res, 404, 'Unidade não encontrada.');
   const itens = db.prepare('SELECT * FROM itens WHERE unidade_id = ? ORDER BY ordem, id').all(u.id);
-  const cols = ['categoria', 'nome', 'qtd', 'status', 'valor_orcado', 'valor_pago', 'loja', 'link', 'oferta_ate', 'cupom', 'forma_pagamento', 'parcelas_cartao', 'numero_pedido', 'link_enviado_em', 'comprado_em', 'previsao_entrega', 'entregue_em', 'instalacao', 'instalador', 'instalacao_data', 'nf_ok', 'obs_interna'];
+  const cols = ['categoria', 'nome', 'qtd', 'voltagem', 'status', 'valor_orcado', 'valor_pago', 'loja', 'link', 'oferta_ate', 'cupom', 'forma_pagamento', 'parcelas_cartao', 'numero_pedido', 'link_enviado_em', 'comprado_em', 'previsao_entrega', 'entregue_em', 'instalacao', 'instalador', 'instalacao_data', 'nf_ok', 'obs_interna'];
   const cel = v => { const s = v === null || v === undefined ? '' : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const fmt = (k, v) => ['valor_orcado', 'valor_pago'].includes(k) && v !== null ? String(v).replace('.', ',') : k.endsWith('_em') || k.endsWith('_ate') || k.endsWith('_data') || k === 'previsao_entrega' ? data(v) : k === 'nf_ok' ? (v ? 'sim' : 'não') : v;
   const csv = '﻿' + [cols.map(k => CAMPOS_ITEM[k] || k).join(';'), ...itens.map(i => cols.map(k => cel(fmt(k, i[k]))).join(';'))].join('\r\n');
